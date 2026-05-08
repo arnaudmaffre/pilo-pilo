@@ -101,7 +101,7 @@ input[type=range]{width:100%;accent-color:#ffd166;}
   <div class="logo-emoji">🌶️</div>
   <div class="logo-title">PILI PILI</div>
   <div class="logo-sub">LE JEU DE PLIS ET DE PARIS</div>
-  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.0</div>
+  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.2</div>
   <div id="fb-status" class="status-box s-wait">⏳ Initialisation...</div>
   <div class="form-group">
     <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
@@ -563,20 +563,46 @@ function rndrGame(gs){
   var players=spl(gs),m=gs.m,rev=m.e==='rev'||m.e==='revblind';
   document.getElementById('gmyname').textContent=me.name;
   document.getElementById('gmypili').innerHTML=ptk(me.pilis||0);
-  var lbs={betting:'Paris',playing:'Jeu',sel3of5:'3 cartes à voir',desig:'Désignez',timer:'Mémorisez !',betblind:'Pariez sans voir',reveal:'Découvrez votre main',results:'Résultats'};
+  var lbs={betting:'Paris',playing:'Jeu',sel3of5:'3 cartes à voir',desig:'Désignez',timer:'Mémorisez !',betblind:'Pariez sans voir',reveal:'Découvrez votre main',results:'Résultats',trick_review:'Résultat du pli'};
   document.getElementById('gplbl').textContent='Manche '+(gs.round||1)+' · '+(lbs[gs.phase]||gs.phase);
   var md=document.getElementById('gmission');
   md.className='mission-card '+(m.x?'mx':'mn');
   md.innerHTML=(m.x?'<span class="xbadge">EXPERT</span>':'')+
     '<span class="mtitle" style="color:'+(m.x?'#ff6b6b':'#2a9d8f')+'">'+esc(m.t)+' <span style="font-size:11px;opacity:0.4">('+m.n+'c)</span></span>'+
     '<div class="mdesc">'+esc(m.d)+'</div>';
+  var isBetting=gs.phase==='betting'||gs.phase==='betblind';
   document.getElementById('gpbar').innerHTML=players.map(function(p,i){
     var act=p.id===gs.cp;
-    return'<div class="pchip" style="background:'+(act?PC[i%PC.length]+'33':'rgba(255,255,255,0.05)')+';border:1px solid '+(act?PC[i%PC.length]:'rgba(255,255,255,0.1)')+'">'+
+    var betDone=p.bet!==null&&p.bet!==undefined;
+    // EVO-003: affichage clair des paris pendant la phase de paris
+    var betDisplay=isBetting
+      ?(betDone?'<span style="color:#ffd166;font-weight:800;font-size:13px">'+p.bet+' pli'+(p.bet>1?'s':'')+'</span>':'<span style="color:rgba(255,255,255,0.3);font-size:12px">'+(act?'⏳ en cours...':'en attente')+'</span>')
+      :'P:'+(betDone?p.bet:'?')+' T:'+(p.tw||0);
+    return'<div class="pchip" style="background:'+(act?PC[i%PC.length]+'33':'rgba(255,255,255,0.05)')+';border:2px solid '+(act?PC[i%PC.length]:(betDone&&isBetting?'rgba(255,209,102,0.3)':'rgba(255,255,255,0.1)'))+'">'+
       '<div class="pcname" style="color:'+PC[i%PC.length]+'">'+esc(p.name)+(p.isAI?' 🤖':'')+'</div>'+
       '<div class="ptk">'+ptk(p.pilis||0,6)+'</div>'+
-      '<div class="pcinfo">P:'+(p.bet!==null&&p.bet!==undefined?p.bet:'?')+' T:'+(p.tw||0)+'</div></div>';
+      '<div class="pcinfo">'+betDisplay+'</div></div>';
   }).join('');
+  // EVO-003: récap des paris si phase de jeu
+  var recapEl=document.getElementById('bets-recap');
+  if(!recapEl){
+    var ra=document.createElement('div');ra.id='bets-recap';
+    ra.style.cssText='background:rgba(255,255,255,0.04);border-radius:12px;padding:8px 14px;margin-bottom:10px;font-size:12px;';
+    var gt2=document.getElementById('gtrick');if(gt2)gt2.parentNode.insertBefore(ra,gt2);
+  }
+  recapEl=document.getElementById('bets-recap');
+  if(recapEl){
+    if(gs.phase==='playing'||gs.phase==='results'){
+      var total=players.reduce(function(a,p){return a+(p.bet||0);},0);
+      recapEl.innerHTML='<span style="color:rgba(255,255,255,0.4)">📊 Paris: </span>'+
+        players.map(function(p,i){
+          var done=p.bet!==null&&p.bet!==undefined;
+          return'<span style="color:'+PC[i%PC.length]+';margin-right:8px">'+esc(p.name.split(' ')[0])+': <strong>'+(done?p.bet:'?')+'</strong></span>';
+        }).join('')+
+        '<span style="color:rgba(255,255,255,0.3)">| Total: '+total+'/'+gs.m.n+'</span>';
+      recapEl.style.display='';
+    }else{recapEl.style.display='none';}
+  }
   var gt=document.getElementById('gtrick');
   if(gs.phase==='reveal'){
     gt.style.display='none';
@@ -661,6 +687,28 @@ function rndrPanel(gs,me,players){
       function doCD(){act({type:'desig',target:SEL[0]});SEL=[];}
       bcd.addEventListener('click',doCD);bcd.addEventListener('touchend',function(e){e.preventDefault();doCD();},false);
     }
+  }else if(ph==='trick_review'){
+    bp.classList.remove('hidden');
+    var winner=gs.players[gs.trickWinner];
+    var isWinner=gs.trickWinner===PID;
+    bp.innerHTML='<div style="text-align:center;padding:4px 0 8px">'+
+      '<div style="font-size:18px;font-weight:800;color:'+(isWinner?'#ffd166':'rgba(255,255,255,0.8)')+'">'+
+      (isWinner?'🏆 Vous remportez ce pli !':'🃏 '+esc(winner?winner.name:'?')+' remporte le pli')+'</div>'+
+      '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px">Plis: '+
+      players.map(function(p,i){return'<span style="color:'+PC[i%PC.length]+'">'+esc(p.name.split(' ')[0])+': '+(p.tw||0)+'</span>';}).join(' · ')+'</div>'+
+      '</div>'+
+      (HOST?'<button class="btn btn-teal" id="btn-next-trick" type="button">▶ Pli suivant</button>':
+      '<div class="wmsg">En attente de l'hôte...</div>');
+    if(HOST){
+      var bnt=document.getElementById('btn-next-trick');
+      function doNextTrick(){
+        DB.ref('rooms/'+ROOM+'/trick').set({_x:true})
+        .then(function(){
+          return DB.ref('rooms/'+ROOM).update({phase:'playing',cp:gs.trickWinner,trickWinner:null});
+        });
+      }
+      if(bnt){bnt.addEventListener('click',doNextTrick);bnt.addEventListener('touchend',function(e){e.preventDefault();doNextTrick();},false);}
+    }
   }else if(ph==='playing'&&!imt){
     bp.classList.remove('hidden');
     var cur=gs.players[gs.cp];
@@ -733,13 +781,15 @@ function doNextRound(){
   players.forEach(function(p,i){po[p.id]={id:p.id,name:p.name,isAI:p.isAI||false,o:i,hand:hands[i],bet:null,tw:0,pilis:p.pilis||0,dt:null,rc:null};});
   var ph=initPh(m),fid=players[nd%players.length].id;
   var te=m.e==='t3s'?Date.now()+3000:m.e==='t5sblind'?Date.now()+5000:null;
-  // ANO-027 FIX: reset trick et hist séparément pour éviter conflit Firebase
-  DB.ref('rooms/'+ROOM+'/trick').set({_x:true})
-  .then(function(){return DB.ref('rooms/'+ROOM+'/hist').set({_x:true});})
-  .then(function(){return DB.ref('rooms/'+ROOM).update({
-    phase:ph,m:m,round:(GS.round||1)+1,dealer:nd,players:po,
-    cp:(ph==='betting'||ph==='betblind')?fid:null,timerEnd:te
-  });})
+  // ANO-028 FIX: set() complet pour éviter les updates intermédiaires Firebase
+  // qui causent des renders partiels et font rater le tour de pari d'ARNO
+  var newRoom={
+    code:ROOM,phase:ph,m:m,round:(GS.round||1)+1,dealer:nd,
+    hostId:GS.hostId,players:po,
+    cp:(ph==='betting'||ph==='betblind')?fid:null,
+    trick:{_x:true},hist:{_x:true},timerEnd:te,ts:Date.now()
+  };
+  DB.ref('rooms/'+ROOM).set(newRoom)
   .catch(function(e){toast('Erreur manche suivante: '+e.message);console.error(e);});
 }
 
@@ -817,11 +867,20 @@ function act(action){
             upd['rooms/'+ROOM+'/players/'+p.id+'/pilis']=np2;
           });
           upd['rooms/'+ROOM+'/phase']='results';upd['rooms/'+ROOM+'/cp']=null;
-        }else{upd['rooms/'+ROOM+'/cp']=wid;}
-        // ANO-026: 1er appel pour écrire la carte, 2ème pour reset trick
+        }else{
+          // EVO-004: phase intermédiaire trick_review - afficher gagnant avant de continuer
+          upd['rooms/'+ROOM+'/phase']='trick_review';
+          upd['rooms/'+ROOM+'/trickWinner']=wid;
+          upd['rooms/'+ROOM+'/cp']=wid;
+        }
+        // ANO-026: 1er appel pour écrire la carte, 2ème pour update, 3ème pour reset si fin de manche
         return DB.ref('rooms/'+ROOM+'/trick/'+who).set(played)
           .then(function(){return DB.ref().update(upd);})
-          .then(function(){return DB.ref('rooms/'+ROOM+'/trick').set({_x:true});});
+          .then(function(){
+            if(upd['rooms/'+ROOM+'/phase']==='results'){
+              return DB.ref('rooms/'+ROOM+'/trick').set({_x:true});
+            }
+          });
       }else{
         upd['rooms/'+ROOM+'/trick/'+who]=played;
         var ci=pl.findIndex(function(p){return p.id===who;});
@@ -857,6 +916,7 @@ function aiTurn(gs,aiId){
   if(ph!=='betting'&&ph!=='betblind'&&(!hand||!hand.length))return;
   var pl=spl(gs),ii=pl.findIndex(function(p){return p.id===aiId;});
   var rev=m.e==='rev'||m.e==='revblind',trick=clnT(gs.trick||{});
+  if(ph==='trick_review'){return;} // EVO-004: host handles trick_review
   if(ph==='betting'||ph==='betblind'){
     var ex=pl.slice(0,ii).map(function(p){return p.bet||0;});
     var est=hand.filter(function(c){return ev(c,rev)>28;}).length;
