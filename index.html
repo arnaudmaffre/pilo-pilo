@@ -800,7 +800,17 @@ function act(action){
     }
     return DB.ref().update(upd);
   })
-  .then(function(){BUSY=false;})
+  .then(function(){
+    BUSY=false;
+    // ANO-019 FIX: re-check AI turn after action completes
+    if(HOST&&GS&&GS.cp&&!BUSY){
+      var cp2=GS.players[GS.cp];
+      if(cp2&&cp2.isAI){
+        clearTimeout(window._ait2);
+        window._ait2=setTimeout(function(){BUSY=false;aiTurn(GS,GS.cp);},300);
+      }
+    }
+  })
   .catch(function(e){toast('Erreur: '+e.message);console.error(e);BUSY=false;});
 }
 
