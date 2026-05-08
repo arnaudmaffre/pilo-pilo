@@ -446,7 +446,15 @@ function subRoom(code){
     else rndrGame(data);
     if(HOST&&data.cp&&!BUSY){
       var cp=data.players[data.cp];
-      if(cp&&cp.isAI){clearTimeout(window._ait);window._ait=setTimeout(function(){if(!BUSY)aiTurn(data,data.cp);},500+Math.floor(Math.random()*300));}
+      if(cp&&cp.isAI){
+        clearTimeout(window._ait);
+        // Force unlock BUSY — Firebase update already completed
+        BUSY=false;
+        window._ait=setTimeout(function(){
+          BUSY=false; // double reset
+          aiTurn(data,data.cp);
+        },600+Math.floor(Math.random()*300));
+      }
     }
     if(data.phase==='timer'&&data.timerEnd){
       startTmr(data.timerEnd,function(){
