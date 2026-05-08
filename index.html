@@ -809,7 +809,9 @@ function act(action){
 function aiTurn(gs,aiId){
   if(BUSY)return;
   var ph=gs.phase,m=gs.m,ai=gs.players[aiId];if(!ai)return;
-  var hand=gh(ai);if(!hand||!hand.length)return;
+  var hand=gh(ai);
+  // ANO-019 FIX: ne pas bloquer le pari si la main est vide (missions échange)
+  if(ph!=='betting'&&ph!=='betblind'&&(!hand||!hand.length))return;
   var pl=spl(gs),ii=pl.findIndex(function(p){return p.id===aiId;});
   var rev=m.e==='rev'||m.e==='revblind',trick=clnT(gs.trick||{});
   if(ph==='betting'||ph==='betblind'){
