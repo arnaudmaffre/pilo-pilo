@@ -2,119 +2,95 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
 <title>🌶️ Pili Pili</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap"/>
+<!-- Firebase OBLIGATOIREMENT en head, scripts synchrones -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap"/>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{background:#0d1b2a;font-family:'Nunito',sans-serif;color:#fff;min-height:100vh;overflow-x:hidden;}
 .screen{min-height:100vh;padding:20px 16px 80px;}
 .hidden{display:none!important;}
-
-/* HOME */
 .home{display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#0d1b2a,#1b2838,#0a1628);}
 .logo-emoji{font-size:72px;margin-bottom:8px;animation:float 3s ease-in-out infinite;}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-.logo-title{font-family:'Fredoka One',cursive;font-size:56px;background:linear-gradient(135deg,#ff6b6b,#ffd166,#ff6b6b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:3px;}
-.logo-sub{color:rgba(255,255,255,0.4);font-size:13px;letter-spacing:3px;margin-bottom:40px;}
-.input-field{width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.2);border-radius:14px;padding:14px 18px;color:#fff;font-size:16px;font-family:'Nunito',sans-serif;outline:none;text-align:center;transition:border-color 0.2s;}
+.logo-title{font-family:'Fredoka One',cursive;font-size:52px;background:linear-gradient(135deg,#ff6b6b,#ffd166);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;}
+.logo-sub{color:rgba(255,255,255,0.4);font-size:12px;letter-spacing:3px;margin-bottom:20px;}
+.input-field{width:100%;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.2);border-radius:14px;padding:14px 18px;color:#fff;font-size:16px;font-family:'Nunito',sans-serif;outline:none;text-align:center;-webkit-appearance:none;}
 .input-field:focus{border-color:rgba(255,209,102,0.6);}
 .input-field::placeholder{color:rgba(255,255,255,0.3);}
-.btn{width:100%;border:none;border-radius:14px;padding:15px;font-family:'Fredoka One',cursive;font-size:18px;color:#fff;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;}
-.btn:active{transform:scale(0.97);}
-.btn-red{background:linear-gradient(135deg,#e63946,#c1121f);box-shadow:0 4px 16px rgba(230,57,70,0.4);}
-.btn-teal{background:linear-gradient(135deg,#2a9d8f,#1a7a6a);box-shadow:0 4px 16px rgba(42,157,143,0.4);}
-.btn-blue{background:linear-gradient(135deg,#457b9d,#2d5a7a);box-shadow:0 4px 16px rgba(69,123,157,0.4);}
-.btn-gold{background:linear-gradient(135deg,#e9c46a,#c9a030);box-shadow:0 4px 16px rgba(233,196,106,0.4);color:#1a1a2a!important;}
+.code-input{font-family:'Fredoka One',cursive;font-size:18px;letter-spacing:4px;text-transform:uppercase;}
+.code-input::placeholder{letter-spacing:1px;font-size:14px;font-family:'Nunito',sans-serif;}
+.btn{width:100%;border:none;border-radius:14px;padding:16px;font-family:'Fredoka One',cursive;font-size:18px;color:#fff;cursor:pointer;-webkit-appearance:none;touch-action:manipulation;}
+.btn:active{opacity:0.8;}
+.btn-red{background:linear-gradient(135deg,#e63946,#c1121f);}
+.btn-teal{background:linear-gradient(135deg,#2a9d8f,#1a7a6a);}
+.btn-blue{background:linear-gradient(135deg,#457b9d,#2d5a7a);}
+.btn-gold{background:linear-gradient(135deg,#e9c46a,#c9a030);color:#1a1a2a!important;}
 .btn-ghost{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);}
 .btn-row{display:flex;gap:10px;}
 .btn-row .btn{flex:1;}
-.code-input{font-family:'Fredoka One',cursive;font-size:24px;letter-spacing:8px;text-align:center;text-transform:uppercase;}
-.form-group{display:flex;flex-direction:column;gap:10px;width:100%;max-width:400px;}
-
-/* LOBBY */
+.form-group{display:flex;flex-direction:column;gap:12px;width:100%;max-width:400px;}
+.status-box{font-size:12px;text-align:center;padding:8px 14px;border-radius:10px;margin-bottom:4px;}
+.s-ok{background:rgba(42,157,143,0.2);color:#2a9d8f;border:1px solid rgba(42,157,143,0.3);}
+.s-wait{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);}
+.s-err{background:rgba(230,57,70,0.2);color:#e63946;border:1px solid rgba(230,57,70,0.3);}
 .lobby{display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#0d1b2a,#1b2838);}
-.room-code-display{background:rgba(255,209,102,0.1);border:2px dashed #ffd166;border-radius:14px;padding:12px 36px;display:inline-block;margin-bottom:8px;}
-.room-code-value{font-family:'Fredoka One',cursive;font-size:48px;color:#ffd166;letter-spacing:14px;}
+.room-code-display{background:rgba(255,209,102,0.1);border:2px dashed #ffd166;border-radius:14px;padding:12px 32px;display:inline-block;margin-bottom:8px;}
+.room-code-value{font-family:'Fredoka One',cursive;font-size:44px;color:#ffd166;letter-spacing:12px;}
 .player-row{display:flex;align-items:center;gap:12px;border-radius:12px;padding:12px 16px;margin-bottom:8px;width:100%;max-width:400px;}
 .player-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-.player-name{flex:1;font-weight:700;}
+.player-name-lbl{flex:1;font-weight:700;}
 .badge{font-size:11px;padding:2px 8px;border-radius:6px;}
 .badge-host{background:rgba(255,209,102,0.2);color:#ffd166;}
 .badge-you{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);}
-
-/* GAME */
 .game{background:linear-gradient(160deg,#0d1b2a,#1b2838,#0a1628);}
 .mission-card{border-radius:16px;padding:12px 16px;margin-bottom:14px;}
-.mission-normal{background:linear-gradient(135deg,rgba(42,157,143,0.15),rgba(26,122,106,0.08));border:1px solid rgba(42,157,143,0.4);}
-.mission-expert{background:linear-gradient(135deg,rgba(230,57,70,0.15),rgba(193,18,31,0.08));border:1px solid rgba(230,57,70,0.4);}
-.expert-badge{font-size:10px;background:#e63946;color:#fff;border-radius:4px;padding:2px 6px;font-weight:800;}
-.mission-title{font-family:'Fredoka One',cursive;font-size:17px;}
-.mission-desc{font-size:12px;color:rgba(255,255,255,0.6);line-height:1.5;margin-top:4px;}
-
-.players-bar{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
-.player-chip{border-radius:12px;padding:8px 12px;min-width:88px;flex-shrink:0;transition:border-color 0.3s;}
-.player-chip-name{font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;margin-bottom:4px;}
-.player-chip-info{font-size:10px;color:rgba(255,255,255,0.5);margin-top:4px;}
-
-.pili-track{display:flex;gap:3px;flex-wrap:wrap;}
-.pili-dot{width:13px;height:13px;border-radius:50%;transition:all 0.3s;}
-.pili-dot.active{background:radial-gradient(circle at 35% 35%,#ff9a9a,#e63946);border:1.5px solid #c1121f;box-shadow:0 1px 5px rgba(230,57,70,0.5);}
-.pili-dot.inactive{background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);}
-
+.mn{background:rgba(42,157,143,0.12);border:1px solid rgba(42,157,143,0.4);}
+.mx{background:rgba(230,57,70,0.12);border:1px solid rgba(230,57,70,0.4);}
+.xbadge{font-size:10px;background:#e63946;color:#fff;border-radius:4px;padding:2px 6px;font-weight:800;margin-right:6px;}
+.mtitle{font-family:'Fredoka One',cursive;font-size:16px;}
+.mdesc{font-size:12px;color:rgba(255,255,255,0.6);line-height:1.5;margin-top:4px;}
+.pbar{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;}
+.pchip{border-radius:12px;padding:8px 12px;min-width:84px;flex-shrink:0;}
+.pcname{font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:76px;margin-bottom:4px;}
+.pcinfo{font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px;}
+.ptk{display:flex;gap:3px;flex-wrap:wrap;}
+.pd{width:12px;height:12px;border-radius:50%;}
+.pd.on{background:radial-gradient(circle at 35% 35%,#ff9a9a,#e63946);border:1.5px solid #c1121f;}
+.pd.off{background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);}
 .trick-area{background:rgba(255,255,255,0.04);border-radius:16px;padding:14px;margin-bottom:14px;}
-.trick-label{font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:10px;}
-.trick-cards{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;min-height:70px;align-items:center;}
-.trick-card-wrap{text-align:center;}
-.trick-player-name{font-size:10px;color:rgba(255,255,255,0.5);margin-top:4px;}
-
+.tlbl{font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:10px;}
+.tcards{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;min-height:70px;align-items:center;}
+.tcw{text-align:center;}
+.tcpn{font-size:10px;color:rgba(255,255,255,0.5);margin-top:4px;}
 .hand-area{margin-bottom:16px;}
-.hand-label{font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:10px;}
-.hand-cards{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
-
-/* CARD */
-.card{border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s cubic-bezier(0.34,1.56,0.64,1);position:relative;user-select:none;flex-shrink:0;}
-.card:active{transform:scale(0.95)!important;}
-.card.selected{transform:translateY(-10px)!important;box-shadow:0 0 14px #ffd166!important;}
-.card.hidden-card{background:linear-gradient(135deg,#1a2a4a,#0d1b2a)!important;border-color:rgba(255,255,255,0.12)!important;}
-.card-value{font-family:'Fredoka One',cursive;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.5);}
-.card-select-badge{position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:#ffd166;border-radius:4px;padding:1px 5px;font-size:9px;color:#1a1a2a;font-weight:900;}
-
-/* BOTTOM PANEL */
-.bottom-panel{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(to top,#0d1b2a,rgba(13,27,42,0.97));padding:16px 20px 28px;border-top:1px solid rgba(255,255,255,0.1);z-index:50;}
-.bet-row{display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:12px;}
-.bet-btn{background:rgba(255,255,255,0.1);border:none;border-radius:10px;width:46px;height:46px;color:#fff;font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.bet-value{font-family:'Fredoka One',cursive;font-size:52px;color:#ffd166;min-width:60px;text-align:center;}
-.bet-info{font-size:13px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:10px;}
-.waiting-msg{text-align:center;color:rgba(255,255,255,0.5);font-size:14px;padding:10px 0;}
-
-/* TIMER */
-.timer-display{text-align:center;margin-bottom:16px;}
-.timer-number{font-family:'Fredoka One',cursive;font-size:80px;line-height:1;}
-.timer-label{color:rgba(255,255,255,0.6);font-size:14px;margin-top:4px;}
-
-/* MODAL */
+.hlbl{font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:10px;}
+.hcards{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.card{border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;user-select:none;flex-shrink:0;touch-action:manipulation;}
+.card.sel{transform:translateY(-10px);box-shadow:0 0 12px #ffd166!important;}
+.cv{font-family:'Fredoka One',cursive;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.5);}
+.csb{position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:#ffd166;border-radius:4px;padding:1px 5px;font-size:9px;color:#1a1a2a;font-weight:900;}
+.bpanel{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(to top,#0d1b2a 85%,transparent);padding:16px 20px 30px;border-top:1px solid rgba(255,255,255,0.1);z-index:50;}
+.brow{display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:12px;}
+.bbtn{background:rgba(255,255,255,0.12);border:none;border-radius:10px;width:50px;height:50px;color:#fff;font-size:28px;cursor:pointer;touch-action:manipulation;}
+.bval{font-family:'Fredoka One',cursive;font-size:52px;color:#ffd166;min-width:56px;text-align:center;}
+.binfo{font-size:13px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:10px;}
+.wmsg{text-align:center;color:rgba(255,255,255,0.5);font-size:14px;padding:10px 0;}
+.tbox{text-align:center;margin-bottom:16px;}
+.tnum{font-family:'Fredoka One',cursive;font-size:80px;line-height:1;}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:100;}
 .modal{background:#1b2838;border-radius:20px;padding:24px;width:90%;max-width:320px;text-align:center;}
 .modal-title{font-family:'Fredoka One',cursive;font-size:22px;color:#ffd166;margin-bottom:16px;}
-.modal-row{display:flex;gap:10px;margin-top:16px;}
-
-/* RESULTS */
+.mrow{display:flex;gap:10px;margin-top:16px;}
 .results{background:linear-gradient(160deg,#0d1b2a,#1b2838);}
-.result-row{border-radius:14px;padding:14px 18px;margin-bottom:10px;}
-.result-name{font-family:'Fredoka One',cursive;font-size:18px;}
-.result-status{font-size:13px;font-weight:800;}
-.result-detail{font-size:12px;color:rgba(255,255,255,0.5);margin-top:2px;}
-
-/* TOAST */
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#e63946;color:#fff;border-radius:12px;padding:10px 20px;z-index:999;font-family:'Nunito',sans-serif;font-weight:700;font-size:14px;cursor:pointer;animation:slideDown 0.3s ease;}
-@keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-
-.section-title{font-family:'Fredoka One',cursive;font-size:14px;color:rgba(255,255,255,0.5);letter-spacing:1px;margin-bottom:8px;}
-.reversed-warning{text-align:center;color:#ff6b6b;font-size:11px;margin-top:6px;}
+.rrow{border-radius:14px;padding:14px 18px;margin-bottom:10px;}
+.rname{font-family:'Fredoka One',cursive;font-size:18px;}
+.toastbox{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#e63946;color:#fff;border-radius:12px;padding:10px 20px;z-index:9999;font-weight:700;font-size:14px;white-space:nowrap;max-width:90vw;text-align:center;}
+.rwarn{text-align:center;color:#ff6b6b;font-size:11px;margin-top:6px;}
 input[type=range]{width:100%;accent-color:#ffd166;}
 </style>
 </head>
@@ -125,16 +101,17 @@ input[type=range]{width:100%;accent-color:#ffd166;}
   <div class="logo-emoji">🌶️</div>
   <div class="logo-title">PILI PILI</div>
   <div class="logo-sub">LE JEU DE PLIS ET DE PARIS</div>
+  <div id="fb-status" class="status-box s-wait">⏳ Initialisation...</div>
   <div class="form-group">
-    <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20"/>
-    <button class="btn btn-red" onclick="handleSolo()">🤖 Solo vs IA</button>
+    <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
+    <button class="btn btn-red" id="btn-solo" type="button">🤖 Solo vs IA</button>
     <div class="btn-row">
-      <button class="btn btn-blue" onclick="handleMatchmaking()">🌐 Matchmaking</button>
-      <button class="btn btn-teal" onclick="handleCreateRoom()">🏠 Créer salle</button>
+      <button class="btn btn-blue" id="btn-mm" type="button">🌐 Matchmaking</button>
+      <button class="btn btn-teal" id="btn-create" type="button">🏠 Créer salle</button>
     </div>
     <div class="btn-row">
-      <input id="join-code" class="input-field code-input" placeholder="CODE" maxlength="4" style="flex:1"/>
-      <button class="btn btn-gold" onclick="handleJoinRoom()" style="flex:1">Rejoindre →</button>
+      <input id="join-code" class="input-field code-input" placeholder="CODE" maxlength="4" style="flex:1" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"/>
+      <button class="btn btn-gold" id="btn-join" type="button" style="flex:1">Rejoindre →</button>
     </div>
   </div>
 </div>
@@ -142,791 +119,702 @@ input[type=range]{width:100%;accent-color:#ffd166;}
 <!-- LOBBY -->
 <div id="screen-lobby" class="screen lobby hidden">
   <div style="text-align:center;margin-bottom:28px;">
-    <div style="font-size:48px;">🏠</div>
-    <h2 style="font-family:'Fredoka One',cursive;font-size:30px;color:#ffd166;margin:8px 0;">Salle privée</h2>
+    <div style="font-size:48px">🏠</div>
+    <h2 style="font-family:'Fredoka One',cursive;font-size:28px;color:#ffd166;margin:8px 0">Salle privée</h2>
     <div class="room-code-display"><div id="lobby-code" class="room-code-value">----</div></div>
-    <div style="color:rgba(255,255,255,0.5);font-size:13px;margin-top:6px;">Partagez ce code à vos amis</div>
+    <div style="color:rgba(255,255,255,0.5);font-size:13px;margin-top:6px">Partagez ce code à vos amis</div>
   </div>
-  <div id="lobby-players" style="width:100%;max-width:400px;"></div>
-  <div style="width:100%;max-width:400px;margin-top:8px;">
+  <div id="lobby-players" style="width:100%;max-width:400px"></div>
+  <div style="width:100%;max-width:400px;margin-top:8px">
     <div id="lobby-start-wrap"></div>
-    <button class="btn btn-ghost" style="margin-top:10px;" onclick="handleLeave()">Quitter la salle</button>
+    <button class="btn btn-ghost" style="margin-top:10px" id="btn-leave" type="button">Quitter</button>
   </div>
 </div>
 
 <!-- GAME -->
 <div id="screen-game" class="screen game hidden">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
     <div>
-      <div style="font-family:'Fredoka One',cursive;font-size:24px;color:#ffd166;">🌶️ Pili Pili</div>
-      <div id="game-phase-label" style="font-size:12px;color:rgba(255,255,255,0.4);"></div>
+      <div style="font-family:'Fredoka One',cursive;font-size:22px;color:#ffd166">🌶️ Pili Pili</div>
+      <div id="gplbl" style="font-size:11px;color:rgba(255,255,255,0.4)"></div>
     </div>
-    <div style="text-align:right;">
-      <div style="font-size:11px;color:rgba(255,255,255,0.5);">Vous</div>
-      <div id="game-my-name" style="font-family:'Fredoka One',cursive;font-size:17px;"></div>
-      <div id="game-my-pilis" class="pili-track" style="justify-content:flex-end;"></div>
+    <div style="text-align:right">
+      <div style="font-size:10px;color:rgba(255,255,255,0.5)">Vous</div>
+      <div id="gmyname" style="font-family:'Fredoka One',cursive;font-size:16px"></div>
+      <div id="gmypili" class="ptk" style="justify-content:flex-end"></div>
     </div>
   </div>
-  <div id="game-mission" class="mission-card"></div>
-  <div id="game-players-bar" class="players-bar"></div>
-  <div id="game-timer" class="timer-display hidden"></div>
-  <div id="game-trick" class="trick-area">
-    <div class="trick-label">Pli en cours</div>
-    <div id="game-trick-cards" class="trick-cards"><span style="color:rgba(255,255,255,0.3);font-size:14px;">En attente...</span></div>
+  <div id="gmission" class="mission-card"></div>
+  <div id="gpbar" class="pbar"></div>
+  <div id="gtimer" class="tbox hidden"></div>
+  <div id="gtrick" class="trick-area">
+    <div class="tlbl">Pli en cours</div>
+    <div id="gtcards" class="tcards"><span style="color:rgba(255,255,255,0.3);font-size:13px">En attente...</span></div>
   </div>
   <div class="hand-area">
-    <div id="game-hand-label" class="hand-label"></div>
-    <div id="game-hand" class="hand-cards"></div>
+    <div id="ghlbl" class="hlbl"></div>
+    <div id="ghand" class="hcards"></div>
   </div>
-  <div id="game-bottom" class="bottom-panel hidden"></div>
+  <div id="gbottom" class="bpanel hidden"></div>
 </div>
 
 <!-- RESULTS -->
 <div id="screen-results" class="screen results hidden">
-  <div style="text-align:center;margin-bottom:24px;">
-    <div id="results-emoji" style="font-size:56px;"></div>
-    <h2 id="results-title" style="font-family:'Fredoka One',cursive;font-size:30px;color:#ffd166;margin:8px 0;"></h2>
+  <div style="text-align:center;margin-bottom:24px">
+    <div id="remoji" style="font-size:56px"></div>
+    <h2 id="rtitle" style="font-family:'Fredoka One',cursive;font-size:28px;color:#ffd166;margin:8px 0"></h2>
   </div>
-  <div id="results-list"></div>
-  <div id="results-actions" style="margin-top:20px;"></div>
+  <div id="rlist" style="max-width:500px;margin:0 auto"></div>
+  <div id="ract" style="margin-top:20px;max-width:400px;margin-left:auto;margin-right:auto"></div>
 </div>
 
-<!-- MODALS -->
+<!-- MODAL JOKER -->
 <div id="modal-joker" class="modal-overlay hidden">
   <div class="modal">
     <div class="modal-title">🔥 Valeur du Joker</div>
-    <input type="range" min="0" max="56" value="28" id="joker-slider" oninput="document.getElementById('joker-val').textContent=this.value"/>
-    <div id="joker-val" style="font-family:'Fredoka One',cursive;font-size:52px;color:#ffd166;margin:10px 0;">28</div>
-    <div class="modal-row">
-      <button class="btn btn-ghost" style="flex:1" onclick="closeJokerModal()">Annuler</button>
-      <button class="btn btn-red" style="flex:1" onclick="confirmJoker()">Jouer</button>
+    <input type="range" min="0" max="56" value="28" id="jrange" oninput="document.getElementById('jdisp').textContent=this.value"/>
+    <div id="jdisp" style="font-family:'Fredoka One',cursive;font-size:52px;color:#ffd166;margin:10px 0">28</div>
+    <div class="mrow">
+      <button class="btn btn-ghost" style="flex:1" id="bjno" type="button">Annuler</button>
+      <button class="btn btn-red" style="flex:1" id="bjyes" type="button">Jouer</button>
     </div>
   </div>
 </div>
 
-<div id="toast" class="toast hidden"></div>
+<div id="toastbox" class="toastbox hidden"></div>
 
 <script>
-// ── FIREBASE ──────────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyBdOh5U127xRacs4VI5GqFHbR_2rzzI5yw",
-  authDomain: "pilo-pilo-aeaf9.firebaseapp.com",
-  databaseURL: "https://pilo-pilo-aeaf9-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "pilo-pilo-aeaf9",
-  storageBucket: "pilo-pilo-aeaf9.firebasestorage.app",
-  messagingSenderId: "408211499865",
-  appId: "1:408211499865:web:51540e33f53d03a609fa48"
+// ════════════════════════════════════════════════════
+// FIREBASE CONFIG & INIT — chargé via CDN en fin de body
+// ════════════════════════════════════════════════════
+var FB_CFG = {
+  apiKey:'AIzaSyBdOh5U127xRacs4VI5GqFHbR_2rzzI5yw',
+  authDomain:'pilo-pilo-aeaf9.firebaseapp.com',
+  databaseURL:'https://pilo-pilo-aeaf9-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId:'pilo-pilo-aeaf9',
+  storageBucket:'pilo-pilo-aeaf9.firebasestorage.app',
+  messagingSenderId:'408211499865',
+  appId:'1:408211499865:web:51540e33f53d03a609fa48'
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+var DB = null;
 
-// ── STATE ─────────────────────────────────────────────────────────────────
-let playerId = Math.random().toString(36).substr(2,10);
-let roomCode = null;
-let isHost = false;
-let gameState = null;
-let roomListener = null;
-let pendingJokerCardId = null;
-let timerInterval = null;
-let selectedCards = [];
+function initFirebase() {
+  try {
+    if (!firebase || !firebase.initializeApp) {
+      setStatus('err','❌ Firebase non chargé — vérifiez votre connexion');
+      return false;
+    }
+    if (!firebase.apps.length) {
+      firebase.initializeApp(FB_CFG);
+    }
+    DB = firebase.database();
+    setStatus('ok','✅ Prêt — entrez votre prénom');
+    // Test connexion temps réel
+    DB.ref('.info/connected').on('value', function(s) {
+      if (s.val()) setStatus('ok','✅ Connecté');
+      else setStatus('wait','⏳ Reconnexion...');
+    });
+    return true;
+  } catch(e) {
+    setStatus('err','❌ Erreur: ' + e.message);
+    console.error('Firebase init error:', e);
+    return false;
+  }
+}
 
-const PLAYER_COLORS = ["#e63946","#457b9d","#2a9d8f","#e9c46a","#f4a261","#a8dadc","#6d6875","#b5838d"];
+// ════════════════════════════════════════════════════
+// ÉTAT GLOBAL
+// ════════════════════════════════════════════════════
+var PID   = 'p' + Math.random().toString(36).substr(2,8);
+var ROOM  = null;
+var HOST  = false;
+var GS    = null;
+var LSTNR = null;
+var JKPND = null;
+var TMRIV = null;
+var SEL   = [];
+var BETV  = 0;
+var BUSY  = false;
+var PC    = ['#e63946','#457b9d','#2a9d8f','#e9c46a','#f4a261','#a8dadc','#6d6875','#b5838d'];
 
-// ── MISSIONS ──────────────────────────────────────────────────────────────
-const MISSIONS = [
-  {id:1,cards:6,expert:false,title:"Échange 2 cartes →",desc:"Après les paris, chaque joueur donne 2 cartes au joueur de droite.",effect:"exchange_2_right"},
-  {id:2,cards:7,expert:false,title:"Main entière →",desc:"Après les paris, chaque joueur donne toute sa main au joueur de droite.",effect:"exchange_all_right"},
-  {id:3,cards:4,expert:false,title:"Pari ≠ 0",desc:"Interdit de parier 0 cette manche.",effect:"no_bet_0"},
-  {id:4,cards:4,expert:false,title:"Échange 2 cartes ←",desc:"Après les paris, chaque joueur donne 2 cartes au joueur de gauche.",effect:"exchange_2_left"},
-  {id:5,cards:5,expert:false,title:"Main entière ←",desc:"Après les paris, chaque joueur donne toute sa main au joueur de gauche.",effect:"exchange_all_left"},
-  {id:6,cards:6,expert:false,title:"Échange 2 cartes ←",desc:"Après les paris, chaque joueur donne 2 cartes au joueur de gauche.",effect:"exchange_2_left"},
-  {id:7,cards:2,expert:false,title:"Masque",desc:"Posez vos cartes sur votre front. Vous voyez celles des autres, pas les vôtres. Pariez, puis jouez.",effect:"forehead"},
-  {id:8,cards:6,expert:false,title:"Échange simultané",desc:"Après les paris, échangez une carte simultanément avec un joueur de votre choix.",effect:"exchange_simultaneous"},
-  {id:9,cards:5,expert:false,title:"Désigner un joueur",desc:"Après les paris, désignez un joueur. Fin de manche : vous recevez vos Pilis + les siens.",effect:"designate"},
-  {id:10,cards:6,expert:true,title:"3 secondes !",desc:"Seulement 3 secondes pour regarder vos cartes avant de parier !",effect:"timer_3s"},
-  {id:11,cards:6,expert:false,title:"Pari ≠ 1",desc:"Interdit de parier 1 cette manche.",effect:"no_bet_1"},
-  {id:12,cards:5,expert:false,title:"3 sur 5",desc:"5 cartes face cachée. Choisissez-en 3 à regarder, pariez, puis remettez-les. Une fois tous les paris faits, découvrez toute votre main.",effect:"three_of_five"},
-  {id:13,cards:3,expert:false,title:"Désigner (3 cartes)",desc:"Après les paris, désignez un joueur. Fin de manche : vous recevez vos Pilis + les siens.",effect:"designate"},
-  {id:14,cards:7,expert:true,title:"Inversé + à l'aveugle",desc:"Valeurs inversées (55=faible, 1=fort) ET tout se joue à l'aveugle après les paris.",effect:"reversed_hidden"},
-  {id:15,cards:3,expert:true,title:"5s puis à l'aveugle",desc:"5 secondes pour voir vos cartes, puis face cachée. Paris et plis se jouent à l'aveugle.",effect:"timer_5s_blind"},
-  {id:16,cards:2,expert:false,title:"Pioche bonus",desc:"Après les paris, chaque joueur pioche 1 carte supplémentaire.",effect:"draw_bonus"},
-  {id:17,cards:5,expert:true,title:"Numéros maudits 3-8",desc:"Gagner un pli avec les cartes 3,4,5,6,7,8 = +1 Pili bonus.",effect:"cursed",cursed:[3,4,5,6,7,8]},
-  {id:18,cards:6,expert:true,title:"Valeurs inversées",desc:"55 est la plus faible, 1 est la plus forte.",effect:"reversed"},
-  {id:19,cards:3,expert:false,title:"Échange 1 carte →",desc:"Après les paris, donnez 1 carte au joueur de droite.",effect:"exchange_1_right"},
-  {id:20,cards:4,expert:false,title:"Échange simultané",desc:"Après les paris, échangez une carte avec un joueur de votre choix.",effect:"exchange_simultaneous"},
-  {id:21,cards:5,expert:false,title:"Main entière circulaire",desc:"Après les paris, donnez toute votre main au joueur de droite.",effect:"exchange_all_right"},
-  {id:22,cards:6,expert:true,title:"Pari réussi = −Pili",desc:"Pari réussi ? Vous défaussez autant de Pilis que votre pari.",effect:"bet_success_minus_pili"},
-  {id:23,cards:4,expert:true,title:"1er/Dernier pli maudit",desc:"Gagner le 1er et/ou le dernier pli = +1 Pili.",effect:"first_last_cursed"},
-  {id:24,cards:6,expert:true,title:"1er/Dernier pli maudit",desc:"Gagner le 1er et/ou le dernier pli = +1 Pili.",effect:"first_last_cursed"},
-  {id:25,cards:5,expert:false,title:"Échange 3 cartes →",desc:"Après les paris, donnez 3 cartes au joueur de droite.",effect:"exchange_3_right"},
-  {id:26,cards:7,expert:false,title:"Échange 3 cartes ←",desc:"Après les paris, donnez 3 cartes au joueur de gauche.",effect:"exchange_3_left"},
-  {id:27,cards:3,expert:true,title:"Pari avant de voir",desc:"Pariez AVANT de regarder vos cartes. Une fois tous les paris faits, découvrez votre main.",effect:"bet_before_see"},
-  {id:28,cards:5,expert:true,title:"Échange après pli",desc:"À chaque pli gagné, échangez une carte avec un joueur de votre choix.",effect:"exchange_after_trick"},
-  {id:29,cards:3,expert:false,title:"Échange 1 carte ←",desc:"Après les paris, donnez 1 carte au joueur de gauche.",effect:"exchange_1_left"},
-  {id:30,cards:4,expert:true,title:"Cartes face visible",desc:"Après les paris, posez toutes vos cartes face visible devant vous.",effect:"cards_face_up"},
-  {id:31,cards:4,expert:true,title:"Valeurs inversées",desc:"55 est la plus faible, 1 est la plus forte.",effect:"reversed"},
-  {id:32,cards:1,expert:true,title:"Masque Aveugle",desc:"2 cartes face cachée. Vous voyez les cartes des autres, pas les vôtres. Les plis se jouent en simultané à l'aveugle.",effect:"blind_forehead"},
-  {id:33,cards:5,expert:true,title:"5s puis à l'aveugle",desc:"5 secondes pour voir vos cartes, puis face cachée. Tout se joue à l'aveugle.",effect:"timer_5s_blind"},
-  {id:34,cards:6,expert:true,title:"Cartes face visible",desc:"Après les paris, posez toutes vos cartes face visible devant vous.",effect:"cards_face_up"},
-  {id:35,cards:6,expert:true,title:"Numéros maudits 34-38",desc:"Gagner un pli avec les cartes 34,35,36,37,38 = +1 Pili bonus.",effect:"cursed",cursed:[34,35,36,37,38]},
-  {id:36,cards:4,expert:false,title:"Pari ≠ précédent",desc:"Interdit de faire le même pari que le joueur précédent.",effect:"no_copy_bet"},
-  {id:37,cards:3,expert:true,title:"Pari réussi = −Pili",desc:"Pari réussi ? Vous défaussez autant de Pilis que votre pari.",effect:"bet_success_minus_pili"},
-  {id:38,cards:5,expert:false,title:"Pari ≠ 1",desc:"Interdit de parier 1 cette manche.",effect:"no_bet_1"},
-  {id:39,cards:5,expert:false,title:"Pioche bonus",desc:"Après les paris, chaque joueur pioche 1 carte supplémentaire.",effect:"draw_bonus"},
-  {id:40,cards:5,expert:false,title:"Main entière →",desc:"Après les paris, donnez toute votre main au joueur de droite.",effect:"exchange_all_right"},
-  {id:41,cards:2,expert:true,title:"Masque Aveugle v2",desc:"2 cartes face cachée. Vous voyez les cartes des autres pas les vôtres. Pariez puis jouez en simultané à l'aveugle.",effect:"blind_forehead"},
+// ════════════════════════════════════════════════════
+// MISSIONS (41)
+// ════════════════════════════════════════════════════
+var MISS = [
+  {id:1,n:6,x:0,t:'Échange 2 cartes →',d:'Après les paris, chaque joueur donne 2 cartes au joueur de droite.',e:'exch2r'},
+  {id:2,n:7,x:0,t:'Main entière →',d:"Après les paris, donnez toute votre main au joueur de droite.",e:'exchr'},
+  {id:3,n:4,x:0,t:'Pari interdit : 0',d:'Interdit de parier 0 cette manche.',e:'nob0'},
+  {id:4,n:4,x:0,t:'Échange 2 cartes ←',d:'Après les paris, chaque joueur donne 2 cartes au joueur de gauche.',e:'exch2l'},
+  {id:5,n:5,x:0,t:'Main entière ←',d:"Après les paris, donnez toute votre main au joueur de gauche.",e:'exchl'},
+  {id:6,n:6,x:0,t:'Échange 2 cartes ←',d:'Après les paris, chaque joueur donne 2 cartes au joueur de gauche.',e:'exch2l'},
+  {id:7,n:2,x:0,t:'Masque',d:"Posez vos cartes sur votre front. Vous voyez celles des autres, pas les vôtres.",e:'forehead'},
+  {id:8,n:6,x:0,t:'Échange simultané',d:"Après les paris, échangez une carte avec un joueur de votre choix.",e:'exchsim'},
+  {id:9,n:5,x:0,t:'Désigner un joueur',d:"Après les paris, désignez un joueur. Fin de manche : vous recevez vos Pilis + les siens.",e:'desig'},
+  {id:10,n:6,x:1,t:'3 secondes !',d:'Seulement 3 secondes pour regarder vos cartes avant de parier !',e:'t3s'},
+  {id:11,n:6,x:0,t:'Pari interdit : 1',d:'Interdit de parier 1 cette manche.',e:'nob1'},
+  {id:12,n:5,x:0,t:'3 sur 5',d:"5 cartes face cachée. Choisissez-en 3 à regarder, pariez, puis remettez-les.",e:'3of5'},
+  {id:13,n:3,x:0,t:'Désigner (3 cartes)',d:"Après les paris, désignez un joueur. Fin de manche : vous recevez vos Pilis + les siens.",e:'desig'},
+  {id:14,n:7,x:1,t:"Inversé + à l'aveugle",d:"Valeurs inversées (55=faible, 1=fort) ET tout se joue à l'aveugle.",e:'revblind'},
+  {id:15,n:3,x:1,t:"5s puis à l'aveugle",d:"5 secondes pour voir vos cartes, puis face cachée. Tout à l'aveugle.",e:'t5sblind'},
+  {id:16,n:4,x:0,t:'Pioche bonus',d:"Après les paris, chaque joueur pioche 1 carte supplémentaire.",e:'draw1'},
+  {id:17,n:5,x:1,t:'Numéros maudits 3-8',d:'Gagner un pli avec les cartes 3,4,5,6,7 ou 8 = +1 Pili.',e:'cursed',c:[3,4,5,6,7,8]},
+  {id:18,n:6,x:1,t:'Valeurs inversées',d:'55 est la plus faible, 1 est la plus forte.',e:'rev'},
+  {id:19,n:3,x:0,t:'Échange 1 carte →',d:"Après les paris, donnez 1 carte au joueur de droite.",e:'exch1r'},
+  {id:20,n:4,x:0,t:'Échange simultané',d:"Après les paris, échangez une carte avec un joueur de votre choix.",e:'exchsim'},
+  {id:21,n:5,x:0,t:'Main entière circulaire',d:"Après les paris, donnez toute votre main au joueur de droite.",e:'exchr'},
+  {id:22,n:6,x:1,t:'Pari réussi = −Pili',d:"Pari réussi ? Vous défaussez autant de Pilis que votre pari.",e:'winminus'},
+  {id:23,n:4,x:1,t:'1er/Dernier pli maudit',d:'Gagner le 1er et/ou le dernier pli = +1 Pili.',e:'fl'},
+  {id:24,n:6,x:1,t:'1er/Dernier pli maudit',d:'Gagner le 1er et/ou le dernier pli = +1 Pili.',e:'fl'},
+  {id:25,n:5,x:0,t:'Échange 3 cartes →',d:"Après les paris, donnez 3 cartes au joueur de droite.",e:'exch3r'},
+  {id:26,n:7,x:0,t:'Échange 3 cartes ←',d:"Après les paris, donnez 3 cartes au joueur de gauche.",e:'exch3l'},
+  {id:27,n:3,x:1,t:'Pari avant de voir',d:"Pariez AVANT de regarder vos cartes. Une fois tous les paris faits, découvrez votre main.",e:'betblind'},
+  {id:28,n:5,x:1,t:'Échange après pli',d:"À chaque pli gagné, échangez une carte avec un joueur de votre choix.",e:'exchwin'},
+  {id:29,n:3,x:0,t:'Échange 1 carte ←',d:"Après les paris, donnez 1 carte au joueur de gauche.",e:'exch1l'},
+  {id:30,n:4,x:1,t:'Cartes face visible',d:"Après les paris, posez toutes vos cartes face visible devant vous.",e:'faceup'},
+  {id:31,n:4,x:1,t:'Valeurs inversées (4c)',d:'55 est la plus faible, 1 est la plus forte.',e:'rev'},
+  {id:32,n:2,x:1,t:'Masque Aveugle',d:"2 cartes face cachée. Vous voyez les cartes des autres, pas les vôtres. Plis à l'aveugle.",e:'blindmask'},
+  {id:33,n:5,x:1,t:"5s à l'aveugle",d:"5 secondes pour voir vos cartes, puis face cachée. Tout à l'aveugle.",e:'t5sblind'},
+  {id:34,n:6,x:1,t:'Cartes face visible (6c)',d:"Après les paris, posez toutes vos cartes face visible devant vous.",e:'faceup'},
+  {id:35,n:6,x:1,t:'Numéros maudits 34-38',d:'Gagner un pli avec les cartes 34,35,36,37 ou 38 = +1 Pili.',e:'cursed',c:[34,35,36,37,38]},
+  {id:36,n:4,x:0,t:'Pari ≠ précédent',d:'Interdit de faire le même pari que le joueur précédent.',e:'nocopy'},
+  {id:37,n:3,x:1,t:'Pari réussi = −Pili (3c)',d:"Pari réussi ? Vous défaussez autant de Pilis que votre pari.",e:'winminus'},
+  {id:38,n:5,x:0,t:'Pari interdit : 1 (5c)',d:'Interdit de parier 1 cette manche.',e:'nob1'},
+  {id:39,n:5,x:0,t:'Pioche bonus (5c)',d:"Après les paris, chaque joueur pioche 1 carte supplémentaire.",e:'draw1'},
+  {id:40,n:5,x:0,t:'Main entière →',d:"Après les paris, donnez toute votre main au joueur de droite.",e:'exchr'},
+  {id:41,n:2,x:1,t:'Masque Aveugle v2',d:"2 cartes face cachée. Vous voyez celles des autres, pas les vôtres. Plis à l'aveugle.",e:'blindmask'}
 ];
 
-// ── CARD COLOR ─────────────────────────────────────────────────────────────
-function getCardColor(n) {
-  if (!n) return {bg:"#1a1a2e",border:"#ff6b35"};
-  const stops=[{at:1,bg:"#1a2a6c"},{at:8,bg:"#2a4a8c"},{at:14,bg:"#3a7ab5"},{at:20,bg:"#4a8a7a"},{at:25,bg:"#5a8a4a"},{at:30,bg:"#7a9a2a"},{at:35,bg:"#a8a020"},{at:40,bg:"#c88018"},{at:45,bg:"#c85020"},{at:50,bg:"#b03030"},{at:55,bg:"#6b2010"}];
-  let lo=stops[0],hi=stops[stops.length-1];
-  for(let i=0;i<stops.length-1;i++){if(n>=stops[i].at&&n<=stops[i+1].at){lo=stops[i];hi=stops[i+1];break;}}
-  const t=(n-lo.at)/Math.max(hi.at-lo.at,1);
-  const lerp=(a,b)=>Math.round(a+(b-a)*t);
-  const hex=v=>v.toString(16).padStart(2,"0");
-  const pr=c=>[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];
-  const [r1,g1,b1]=pr(lo.bg),[r2,g2,b2]=pr(hi.bg);
-  return {bg:`#${hex(lerp(r1,r2))}${hex(lerp(g1,g2))}${hex(lerp(b1,b2))}`,border:"rgba(255,255,255,0.25)"};
-}
-
-// ── HELPERS ────────────────────────────────────────────────────────────────
-function genCode(){return Math.random().toString(36).substr(2,4).toUpperCase();}
-function buildDeck(){
-  const d=Array.from({length:55},(_,i)=>({id:i+1,value:i+1,isJoker:false}));
-  d.push({id:56,value:null,isJoker:true});
-  return d;
-}
-function shuffle(a){const r=[...a];for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]];}return r;}
-function effectiveVal(card,rev){if(!card)return 0;if(card.isJoker)return rev?-1:57;return rev?56-card.value:card.value;}
-function sortedPlayers(gs){return Object.values(gs.players||{}).sort((a,b)=>a.order-b.order);}
-
-function showToast(msg,ms=3000){
-  const t=document.getElementById('toast');
+// ════════════════════════════════════════════════════
+// UTILITAIRES
+// ════════════════════════════════════════════════════
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function setStatus(type,msg){var e=document.getElementById('fb-status');if(e){e.className='status-box s-'+type;e.textContent=msg;}}
+function toast(msg,ms){
+  ms=ms||3000;var t=document.getElementById('toastbox');
   t.textContent=msg;t.classList.remove('hidden');
-  setTimeout(()=>t.classList.add('hidden'),ms);
+  clearTimeout(t._t);t._t=setTimeout(function(){t.classList.add('hidden');},ms);
 }
-
-// ── RENDER HELPERS ────────────────────────────────────────────────────────
-function renderPiliTrack(count,max=6){
-  return Array.from({length:max}).map((_,i)=>`<div class="pili-dot ${i<count?'active':'inactive'}"></div>`).join('');
-}
-
-function renderCard(card,opts={}){
-  const {size='normal',hidden=false,selected=false,onclick='',small=false}=opts;
-  const w=small?44:64, h=small?62:90, fs=small?18:28;
-  const col=getCardColor(card.isJoker?0:card.value);
-  const bg=hidden?'linear-gradient(135deg,#1a2a4a,#0d1b2a)':col.bg;
-  const border=selected?'#ffd166':hidden?'rgba(255,255,255,0.1)':col.border;
-  const shadow=selected?'0 0 14px #ffd166':'0 3px 10px rgba(0,0,0,0.4)';
-  const transform=selected?'translateY(-10px)':'none';
-  const content=hidden?'<span style="font-size:18px;opacity:0.25">🌶️</span>':card.isJoker?`<span style="font-size:${fs}px">🔥</span>`:`<span class="card-value" style="font-size:${fs}px">${card.value}</span>`;
-  const badge=selected?`<div class="card-select-badge">✓</div>`:'';
-  return `<div class="card${selected?' selected':''}" style="width:${w}px;height:${h}px;background:${bg};border:2px solid ${border};box-shadow:${shadow};transform:${transform};" onclick="${onclick}" data-card-id="${card.id}">${content}${badge}</div>`;
-}
-
-// ── SCREENS ────────────────────────────────────────────────────────────────
-function showScreen(name){
-  ['home','lobby','game','results'].forEach(s=>{
+function scr(name){
+  ['home','lobby','game','results'].forEach(function(s){
     document.getElementById('screen-'+s).classList.toggle('hidden',s!==name);
   });
 }
+function ptk(n,max){max=max||6;var h='';for(var i=0;i<max;i++)h+='<div class="pd '+(i<n?'on':'off')+'"></div>';return h;}
+function cardCol(n){
+  if(!n)return{bg:'#1a1a2e',br:'#ff6b35'};
+  var st=[{a:1,b:'#1a2a6c'},{a:8,b:'#2a4a8c'},{a:14,b:'#3a7ab5'},{a:20,b:'#4a8a7a'},{a:25,b:'#5a8a4a'},{a:30,b:'#7a9a2a'},{a:35,b:'#a8a020'},{a:40,b:'#c88018'},{a:45,b:'#c85020'},{a:50,b:'#b03030'},{a:55,b:'#6b2010'}];
+  var lo=st[0],hi=st[st.length-1];
+  for(var i=0;i<st.length-1;i++){if(n>=st[i].a&&n<=st[i+1].a){lo=st[i];hi=st[i+1];break;}}
+  var t=(n-lo.a)/Math.max(hi.a-lo.a,1);
+  function lp(a,b){return Math.round(a+(b-a)*t);}
+  function hx(v){return v.toString(16).padStart(2,'0');}
+  function pr(c){return[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];}
+  var a=pr(lo.b),b=pr(hi.b);
+  return{bg:'#'+hx(lp(a[0],b[0]))+hx(lp(a[1],b[1]))+hx(lp(a[2],b[2])),br:'rgba(255,255,255,0.25)'};
+}
+function mkCard(c,o){
+  o=o||{};var hid=o.hid,sel=o.sel,oc=o.oc,sm=o.sm;
+  var w=sm?44:64,h=sm?62:90,fs=sm?15:25;
+  var col=cardCol(c.j?0:c.v);
+  var bg=hid?'linear-gradient(135deg,#1a2a4a,#0d1b2a)':col.bg;
+  var br=sel?'#ffd166':(hid?'rgba(255,255,255,0.1)':col.br);
+  var sh=sel?'0 0 12px #ffd166':'0 3px 8px rgba(0,0,0,0.4)';
+  var tr=sel?'translateY(-10px)':'none';
+  var ct=hid?'<span style="font-size:14px;opacity:0.2">🌶️</span>':c.j?'<span style="font-size:'+fs+'px">🔥</span>':'<span class="cv" style="font-size:'+fs+'px">'+c.v+'</span>';
+  var bd=sel?'<div class="csb">✓</div>':'';
+  var ca=oc?'onclick="'+oc+'"':'';
+  return'<div class="card'+(sel?' sel':'')+'" style="width:'+w+'px;height:'+h+'px;background:'+bg+';border:2px solid '+br+';box-shadow:'+sh+';transform:'+tr+';" '+ca+'>'+ct+bd+'</div>';
+}
+function mkDeck(){var d=[];for(var i=1;i<=55;i++)d.push({id:i,v:i,j:false});d.push({id:56,v:56,j:true});return d;}
+function rnd(a){var r=a.slice();for(var i=r.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=r[i];r[i]=r[j];r[j]=t;}return r;}
+function ev(c,rev){if(!c)return 0;if(c.j)return rev?-1:57;return rev?56-c.v:c.v;}
+function spl(gs){return Object.values(gs.players||{}).sort(function(a,b){return(a.o||0)-(b.o||0);});}
+function gh(p){if(!p||!p.hand)return[];if(p.hand._x)return[];return Array.isArray(p.hand)?p.hand:Object.values(p.hand).filter(function(x){return x&&!x._x;});}
+function clnT(o){if(!o)return{};var r={};Object.keys(o).forEach(function(k){if(k!=='_x')r[k]=o[k];});return r;}
+function genCode(){return Math.random().toString(36).substr(2,4).toUpperCase();}
+function genSolo(){return'SL'+Math.random().toString(36).substr(2,2).toUpperCase();}
+function getName(){return document.getElementById('home-name').value.trim();}
+function initPh(m){if(m.e==='t3s'||m.e==='t5sblind')return'timer';if(m.e==='3of5')return'sel3of5';if(m.e==='betblind')return'betblind';return'betting';}
+function postBet(m){if(m.e==='desig')return'desig';if(m.e==='betblind')return'reveal';return'playing';}
 
-// ── HOME HANDLERS ─────────────────────────────────────────────────────────
-async function handleSolo(){
-  const name=document.getElementById('home-name').value.trim();
-  if(!name){showToast('Entrez votre prénom !');return;}
-  const code='SOLO'+Math.floor(Math.random()*9000+1000);
-  const players=[
-    {id:playerId,name,isAI:false,pilis:0,order:0},
-    {id:'ai1',name:'Robo-Chili 🤖',isAI:true,pilis:0,order:1},
-    {id:'ai2',name:'Capsaïco 🤖',isAI:true,pilis:0,order:2},
-  ];
-  roomCode=code; isHost=true;
-  await startGame(code,playerId,players);
-  subscribeRoom(code);
-  showScreen('game');
+// ════════════════════════════════════════════════════
+// ATTACHER LES BOUTONS — appelé une seule fois au démarrage
+// ════════════════════════════════════════════════════
+function attachAll() {
+  function on(id,fn){var el=document.getElementById(id);if(el){el.addEventListener('touchend',function(e){e.preventDefault();fn();},false);el.addEventListener('click',fn,false);}}
+  on('btn-solo',   doSolo);
+  on('btn-create', doCreate);
+  on('btn-mm',     doMatchmaking);
+  on('btn-join',   doJoin);
+  on('btn-leave',  doLeave);
+  on('bjno', function(){document.getElementById('modal-joker').classList.add('hidden');JKPND=null;});
+  on('bjyes',function(){
+    var val=parseInt(document.getElementById('jrange').value);
+    document.getElementById('modal-joker').classList.add('hidden');
+    if(JKPND!==null)act({type:'play',id:JKPND,v:val,j:true});
+    JKPND=null;
+  });
 }
 
-async function handleCreateRoom(){
-  const name=document.getElementById('home-name').value.trim();
-  if(!name){showToast('Entrez votre prénom !');return;}
-  const code=genCode();
-  const player={id:playerId,name,isAI:false,pilis:0};
-  await db.ref(`rooms/${code}`).set({code,phase:'lobby',hostId:playerId,players:{[playerId]:player},createdAt:Date.now()});
-  roomCode=code; isHost=true;
-  subscribeRoom(code);
-  showScreen('lobby');
+// ════════════════════════════════════════════════════
+// HANDLERS MÉTIER
+// ════════════════════════════════════════════════════
+function doSolo(){
+  if(!DB){toast('⚠️ Firebase pas prêt — patientez 2 secondes et réessayez');return;}
+  var name=getName();if(!name){toast('✏️ Entrez votre prénom !');return;}
+  var code=genSolo();ROOM=code;HOST=true;
+  setStatus('wait','Lancement...');
+  startGame(code,PID,[
+    {id:PID,name:name,isAI:false,pilis:0,o:0},
+    {id:'ai1',name:'Robo-Chili 🤖',isAI:true,pilis:0,o:1},
+    {id:'ai2',name:'Capsaïco 🤖',isAI:true,pilis:0,o:2}
+  ]).then(function(){subRoom(code);})
+  .catch(function(e){toast('Erreur: '+e.message);setStatus('err','❌ '+e.message);console.error(e);});
 }
 
-async function handleJoinRoom(){
-  const name=document.getElementById('home-name').value.trim();
-  const code=document.getElementById('join-code').value.trim().toUpperCase();
-  if(!name){showToast('Entrez votre prénom !');return;}
-  if(code.length!==4){showToast('Code invalide (4 lettres)');return;}
-  const snap=await db.ref(`rooms/${code}`).get();
-  const room=snap.val();
-  if(!room){showToast('Salle introuvable');return;}
-  if(Object.keys(room.players||{}).length>=8){showToast('Salle pleine (8 max)');return;}
-  const player={id:playerId,name,isAI:false,pilis:0};
-  await db.ref(`rooms/${code}/players/${playerId}`).set(player);
-  roomCode=code; isHost=false;
-  subscribeRoom(code);
-  showScreen('lobby');
+function doCreate(){
+  if(!DB){toast('⚠️ Firebase pas prêt');return;}
+  var name=getName();if(!name){toast('✏️ Entrez votre prénom !');return;}
+  var code=genCode();
+  DB.ref('rooms/'+code).set({code:code,phase:'lobby',hostId:PID,
+    players:{[PID]:{id:PID,name:name,isAI:false,pilis:0,o:0}},ts:Date.now()})
+  .then(function(){ROOM=code;HOST=true;subRoom(code);scr('lobby');})
+  .catch(function(e){toast('Erreur: '+e.message);});
 }
 
-async function handleMatchmaking(){
-  const name=document.getElementById('home-name').value.trim();
-  if(!name){showToast('Entrez votre prénom !');return;}
-  const snap=await db.ref('rooms').get();
-  const rooms=snap.val()||{};
-  const open=Object.values(rooms).find(r=>r.phase==='lobby'&&Object.keys(r.players||{}).length<8&&r.code!=='SOLO');
-  if(open){document.getElementById('join-code').value=open.code;await handleJoinRoom();}
-  else await handleCreateRoom();
+function doJoin(){
+  if(!DB){toast('⚠️ Firebase pas prêt');return;}
+  var name=getName();var code=document.getElementById('join-code').value.trim().toUpperCase();
+  if(!name){toast('✏️ Entrez votre prénom !');return;}
+  if(code.length<3){toast('⚠️ Code invalide');return;}
+  DB.ref('rooms/'+code).get()
+  .then(function(s){
+    var room=s.val();
+    if(!room){toast('❌ Salle introuvable');return;}
+    if(room.phase!=='lobby'){toast('⚠️ Partie déjà commencée');return;}
+    var nb=Object.keys(room.players||{}).length;
+    if(nb>=8){toast('⚠️ Salle pleine');return;}
+    return DB.ref('rooms/'+code+'/players/'+PID)
+      .set({id:PID,name:name,isAI:false,pilis:0,o:nb})
+      .then(function(){ROOM=code;HOST=false;subRoom(code);scr('lobby');});
+  })
+  .catch(function(e){toast('Erreur: '+e.message);});
 }
 
-async function handleLeave(){
-  if(roomCode){
-    await db.ref(`rooms/${roomCode}/players/${playerId}`).remove();
-    if(roomListener){db.ref(`rooms/${roomCode}`).off();roomListener=null;}
-  }
-  roomCode=null;isHost=false;gameState=null;
-  showScreen('home');
+function doMatchmaking(){
+  if(!DB){toast('⚠️ Firebase pas prêt');return;}
+  var name=getName();if(!name){toast('✏️ Entrez votre prénom !');return;}
+  DB.ref('rooms').get()
+  .then(function(s){
+    var rooms=s.val()||{};
+    var open=Object.values(rooms).find(function(r){
+      return r.phase==='lobby'&&Object.keys(r.players||{}).length<8&&!(r.code||'').startsWith('SL');
+    });
+    if(open){document.getElementById('join-code').value=open.code;doJoin();}
+    else doCreate();
+  })
+  .catch(function(e){toast('Erreur matchmaking: '+e.message);});
 }
 
-// ── ROOM SUBSCRIPTION ─────────────────────────────────────────────────────
-function subscribeRoom(code){
-  if(roomListener){db.ref(`rooms/${roomListener}`).off();}
-  roomListener=code;
-  db.ref(`rooms/${code}`).on('value',snap=>{
-    const data=snap.val();
-    if(!data){roomCode=null;showScreen('home');return;}
-    gameState=data;
-    const ph=data.phase;
-    if(ph==='lobby')renderLobby(data);
-    else if(ph==='results')renderResults(data);
-    else renderGame(data);
-    // AI turns
-    if(isHost&&data.currentPlayer){
-      const cp=data.players[data.currentPlayer];
-      if(cp&&cp.isAI)setTimeout(()=>handleAITurn(data,data.currentPlayer),1000);
+function doLeave(){
+  if(ROOM&&DB)DB.ref('rooms/'+ROOM+'/players/'+PID).remove().catch(function(){});
+  if(LSTNR&&DB){DB.ref('rooms/'+LSTNR).off('value');LSTNR=null;}
+  ROOM=null;HOST=false;GS=null;SEL=[];scr('home');
+}
+
+// ════════════════════════════════════════════════════
+// SUBSCRIPTION
+// ════════════════════════════════════════════════════
+function subRoom(code){
+  if(LSTNR&&DB){DB.ref('rooms/'+LSTNR).off('value');LSTNR=null;}
+  LSTNR=code;
+  DB.ref('rooms/'+code).on('value',function(s){
+    var data=s.val();
+    if(!data){ROOM=null;scr('home');toast('Salle fermée.');return;}
+    GS=data;
+    if(data.phase==='lobby')rndrLobby(data);
+    else if(data.phase==='results')rndrResults(data);
+    else rndrGame(data);
+    if(HOST&&data.cp&&!BUSY){
+      var cp=data.players[data.cp];
+      if(cp&&cp.isAI)setTimeout(function(){aiTurn(data,data.cp);},700+Math.floor(Math.random()*500));
     }
-    // Timer phases
-    if((ph==='timer_viewing'||ph==='timer_3s_viewing')&&data.timerEnd){
-      startTimerUI(data.timerEnd,()=>{
-        if(isHost)db.ref(`rooms/${code}`).update({phase:'playing',currentPlayer:sortedPlayers(data)[data.dealer%sortedPlayers(data).length].id});
+    if(data.phase==='timer'&&data.timerEnd){
+      startTmr(data.timerEnd,function(){
+        if(HOST){var pl=spl(data);DB.ref('rooms/'+code).update({phase:'betting',cp:pl[data.dealer%pl.length].id});}
       });
     }
   });
 }
 
-// ── LOBBY RENDER ──────────────────────────────────────────────────────────
-function renderLobby(gs){
+// ════════════════════════════════════════════════════
+// LOBBY
+// ════════════════════════════════════════════════════
+function rndrLobby(gs){
+  scr('lobby');
   document.getElementById('lobby-code').textContent=gs.code;
-  const players=Object.values(gs.players||{});
-  const html=players.map((p,i)=>`
-    <div class="player-row" style="background:${PLAYER_COLORS[i%PLAYER_COLORS.length]}18;border:1px solid ${PLAYER_COLORS[i%PLAYER_COLORS.length]}44;">
-      <div class="player-dot" style="background:${PLAYER_COLORS[i%PLAYER_COLORS.length]};"></div>
-      <div class="player-name">${p.name}</div>
-      ${p.id===gs.hostId?'<span class="badge badge-host">👑 Hôte</span>':''}
-      ${p.id===playerId?'<span class="badge badge-you">Vous</span>':''}
-    </div>`).join('');
-  document.getElementById('lobby-players').innerHTML=html;
-  const sw=document.getElementById('lobby-start-wrap');
-  if(isHost&&players.length>=2){
-    sw.innerHTML=`<button class="btn btn-teal" onclick="handleStartLobbyGame()">🌶️ Lancer (${players.length} joueurs)</button>`;
-  } else if(isHost){
-    sw.innerHTML=`<div style="text-align:center;color:rgba(255,255,255,0.4);font-size:13px;padding:10px;">En attente d'au moins 2 joueurs...</div>`;
-  } else {
-    sw.innerHTML=`<div style="text-align:center;color:rgba(255,255,255,0.4);font-size:13px;padding:10px;">En attente que l'hôte lance la partie...</div>`;
-  }
-}
-
-async function handleStartLobbyGame(){
-  const players=Object.values(gameState.players);
-  await startGame(roomCode,playerId,players);
-}
-
-// ── START GAME ────────────────────────────────────────────────────────────
-async function startGame(code,hostId,playersList){
-  const mission=MISSIONS[Math.floor(Math.random()*MISSIONS.length)];
-  const hands=dealCards(mission,playersList.length);
-  const playersObj={};
-  playersList.forEach((p,i)=>{
-    playersObj[p.id]={...p,order:i,hand:hands[i],bet:null,tricksWon:0,pilis:p.pilis||0,designatedTarget:null,revealedCards:null};
-  });
-  const firstBetter=playersList[0];
-  const phase=getInitialPhase(mission);
-  const gs={code,phase,mission,round:1,dealer:0,players:playersObj,
-    currentPlayer:phase==='betting'||phase==='bet_before_see'?firstBetter.id:null,
-    currentTrick:{},trickHistory:{},hostId,
-    timerEnd:['timer_3s','timer_5s_blind'].includes(mission.effect)?Date.now()+(mission.effect==='timer_3s'?3000:5000):null
-  };
-  await db.ref(`rooms/${code}`).set(gs);
-  showScreen('game');
-}
-
-function getInitialPhase(mission){
-  if(['timer_3s','timer_5s_blind'].includes(mission.effect))return 'timer_viewing';
-  if(mission.effect==='three_of_five')return 'three_of_five_select';
-  if(mission.effect==='bet_before_see')return 'bet_before_see';
-  return 'betting';
-}
-
-function dealCards(mission,numPlayers){
-  const deck=shuffle(buildDeck());
-  const n=mission.cards;
-  return Array.from({length:numPlayers},(_,i)=>deck.slice(i*n,(i+1)*n));
-}
-
-// ── GAME RENDER ───────────────────────────────────────────────────────────
-function renderGame(gs){
-  showScreen('game');
-  const me=gs.players[playerId];
-  if(!me)return;
-  const players=sortedPlayers(gs);
-  const mission=gs.mission;
-  const reversed=mission.effect==='reversed'||mission.effect==='reversed_hidden';
-
-  // Header
-  document.getElementById('game-my-name').textContent=me.name;
-  document.getElementById('game-my-pilis').innerHTML=renderPiliTrack(me.pilis||0);
-  const phaseLabels={betting:'Paris en cours',playing:'Jeu en cours',results:'Résultats',
-    three_of_five_select:'Choisissez 3 cartes',designate:'Désignez un joueur',
-    timer_viewing:'Mémorisez !',bet_before_see:'Pariez sans voir !',cards_face_up:'Cartes visibles'};
-  document.getElementById('game-phase-label').textContent=`Manche ${gs.round||1} · ${phaseLabels[gs.phase]||gs.phase}`;
-
-  // Mission
-  const mDiv=document.getElementById('game-mission');
-  mDiv.className=`mission-card ${mission.expert?'mission-expert':'mission-normal'}`;
-  mDiv.innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-      <div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          ${mission.expert?'<span class="expert-badge">EXPERT</span>':''}
-          <span class="mission-title" style="color:${mission.expert?'#ff6b6b':'#2a9d8f'}">${mission.title}</span>
-        </div>
-        <div class="mission-desc">${mission.desc}</div>
-      </div>
-      <div style="font-family:'Fredoka One',cursive;font-size:26px;color:rgba(255,255,255,0.25);margin-left:10px;">${mission.cards}c</div>
-    </div>`;
-
-  // Players bar
-  document.getElementById('game-players-bar').innerHTML=players.map((p,i)=>{
-    const isActive=p.id===gs.currentPlayer;
-    return `<div class="player-chip" style="background:${isActive?PLAYER_COLORS[i%PLAYER_COLORS.length]+'33':'rgba(255,255,255,0.05)'};border:1px solid ${isActive?PLAYER_COLORS[i%PLAYER_COLORS.length]:'rgba(255,255,255,0.1)'};">
-      <div class="player-chip-name" style="color:${PLAYER_COLORS[i%PLAYER_COLORS.length]}">${p.name}${p.isAI?' 🤖':''}</div>
-      <div class="pili-track">${renderPiliTrack(p.pilis||0,6)}</div>
-      <div class="player-chip-info">P:${p.bet!==null&&p.bet!==undefined?p.bet:'?'} Pli:${p.tricksWon||0}</div>
-    </div>`;
+  var players=Object.values(gs.players||{}).sort(function(a,b){return(a.o||0)-(b.o||0);});
+  document.getElementById('lobby-players').innerHTML=players.map(function(p,i){
+    return'<div class="player-row" style="background:'+PC[i%PC.length]+'18;border:1px solid '+PC[i%PC.length]+'44">'+
+      '<div class="player-dot" style="background:'+PC[i%PC.length]+'"></div>'+
+      '<div class="player-name-lbl">'+esc(p.name)+'</div>'+
+      (p.id===gs.hostId?'<span class="badge badge-host">👑</span>':'')+
+      (p.id===PID?'<span class="badge badge-you">Vous</span>':'')+
+      '</div>';
   }).join('');
+  var sw=document.getElementById('lobby-start-wrap');
+  if(HOST&&players.length>=2){
+    sw.innerHTML='<button class="btn btn-teal" id="btn-launch" type="button">🌶️ Lancer ('+players.length+' joueurs)</button>';
+    var bl=document.getElementById('btn-launch');
+    bl.addEventListener('click',function(){
+      var pl=Object.values(gs.players).sort(function(a,b){return(a.o||0)-(b.o||0);});
+      startGame(ROOM,PID,pl).catch(function(e){toast('Erreur: '+e.message);});
+    });
+    bl.addEventListener('touchend',function(e){e.preventDefault();
+      var pl=Object.values(gs.players).sort(function(a,b){return(a.o||0)-(b.o||0);});
+      startGame(ROOM,PID,pl).catch(function(e){toast('Erreur: '+e.message);});
+    },false);
+  }else if(HOST){
+    sw.innerHTML='<div style="text-align:center;color:rgba(255,255,255,0.4);font-size:13px;padding:10px">En attente d\'au moins 2 joueurs...</div>';
+  }else{
+    sw.innerHTML='<div style="text-align:center;color:rgba(255,255,255,0.4);font-size:13px;padding:10px">En attente que l\'hôte lance...</div>';
+  }
+}
 
-  // Trick area
-  const trick=gs.currentTrick||{};
-  const trickEntries=Object.entries(trick);
-  const isBlind=['reversed_hidden','timer_5s_blind','blind_forehead'].includes(mission.effect);
-  if(trickEntries.length===0){
-    document.getElementById('game-trick-cards').innerHTML='<span style="color:rgba(255,255,255,0.3);font-size:14px;">En attente du premier joueur...</span>';
-  } else {
-    document.getElementById('game-trick-cards').innerHTML=trickEntries.map(([pid,card])=>{
-      const p=gs.players[pid];
-      return `<div class="trick-card-wrap">${renderCard(card,{small:true,hidden:isBlind&&pid!==playerId})}<div class="trick-player-name">${p?.name||'?'}</div></div>`;
+// ════════════════════════════════════════════════════
+// START GAME
+// ════════════════════════════════════════════════════
+function startGame(code,hid,plist){
+  var m=MISS[Math.floor(Math.random()*MISS.length)];
+  var deck=rnd(mkDeck());
+  var hands=[];for(var i=0;i<plist.length;i++)hands.push(deck.slice(i*m.n,(i+1)*m.n));
+  var po={};
+  plist.forEach(function(p,i){
+    po[p.id]={id:p.id,name:p.name,isAI:p.isAI||false,o:i,hand:hands[i],bet:null,tw:0,pilis:p.pilis||0,dt:null,rc:null};
+  });
+  var ph=initPh(m),fid=plist[0].id;
+  var te=m.e==='t3s'?Date.now()+3000:m.e==='t5sblind'?Date.now()+5000:null;
+  return DB.ref('rooms/'+code).set({
+    code:code,phase:ph,m:m,round:1,dealer:0,hostId:hid,players:po,
+    cp:(ph==='betting'||ph==='betblind')?fid:null,
+    trick:{_x:true},hist:{_x:true},timerEnd:te,ts:Date.now()
+  });
+}
+
+// ════════════════════════════════════════════════════
+// RENDU JEU
+// ════════════════════════════════════════════════════
+function rndrGame(gs){
+  scr('game');
+  var me=gs.players[PID];if(!me)return;
+  var players=spl(gs),m=gs.m,rev=m.e==='rev'||m.e==='revblind';
+  document.getElementById('gmyname').textContent=me.name;
+  document.getElementById('gmypili').innerHTML=ptk(me.pilis||0);
+  var lbs={betting:'Paris',playing:'Jeu',sel3of5:'3 cartes à voir',desig:'Désignez',timer:'Mémorisez !',betblind:'Pariez sans voir',reveal:'Découvrez votre main',results:'Résultats'};
+  document.getElementById('gplbl').textContent='Manche '+(gs.round||1)+' · '+(lbs[gs.phase]||gs.phase);
+  var md=document.getElementById('gmission');
+  md.className='mission-card '+(m.x?'mx':'mn');
+  md.innerHTML=(m.x?'<span class="xbadge">EXPERT</span>':'')+
+    '<span class="mtitle" style="color:'+(m.x?'#ff6b6b':'#2a9d8f')+'">'+esc(m.t)+' <span style="font-size:11px;opacity:0.4">('+m.n+'c)</span></span>'+
+    '<div class="mdesc">'+esc(m.d)+'</div>';
+  document.getElementById('gpbar').innerHTML=players.map(function(p,i){
+    var act=p.id===gs.cp;
+    return'<div class="pchip" style="background:'+(act?PC[i%PC.length]+'33':'rgba(255,255,255,0.05)')+';border:1px solid '+(act?PC[i%PC.length]:'rgba(255,255,255,0.1)')+'">'+
+      '<div class="pcname" style="color:'+PC[i%PC.length]+'">'+esc(p.name)+(p.isAI?' 🤖':'')+'</div>'+
+      '<div class="ptk">'+ptk(p.pilis||0,6)+'</div>'+
+      '<div class="pcinfo">P:'+(p.bet!==null&&p.bet!==undefined?p.bet:'?')+' T:'+(p.tw||0)+'</div></div>';
+  }).join('');
+  var gt=document.getElementById('gtrick');
+  if(gs.phase==='reveal'){
+    gt.style.display='none';
+    document.getElementById('ghlbl').textContent='👁 Découvrez votre main !';
+    document.getElementById('ghand').innerHTML=gh(me).map(function(c){return mkCard(c);}).join('');
+    var bp=document.getElementById('gbottom');bp.classList.remove('hidden');
+    if(HOST){
+      bp.innerHTML='<button class="btn btn-teal" id="bstplay" type="button">▶ Commencer à jouer</button>';
+      var bsp=document.getElementById('bstplay');
+      function doReveal(){var pl=spl(gs);DB.ref('rooms/'+ROOM).update({phase:'playing',cp:pl[gs.dealer%pl.length].id});}
+      bsp.addEventListener('click',doReveal);
+      bsp.addEventListener('touchend',function(e){e.preventDefault();doReveal();},false);
+    }else{bp.innerHTML='<div class="wmsg">En attente de l\'hôte...</div>';}
+    return;
+  }
+  gt.style.display='';
+  var trick=clnT(gs.trick||{}),tE=Object.entries(trick);
+  var blind=['revblind','t5sblind','blindmask'].indexOf(m.e)>=0;
+  document.getElementById('gtcards').innerHTML=tE.length===0
+    ?'<span style="color:rgba(255,255,255,0.3);font-size:13px">En attente...</span>'
+    :tE.map(function(e){var pid=e[0],c=e[1],p=gs.players[pid];
+      return'<div class="tcw">'+mkCard(c,{sm:true,hid:blind&&pid!==PID})+'<div class="tcpn">'+esc(p?p.name:'?')+'</div></div>';
     }).join('');
-  }
-  if(reversed){
-    document.getElementById('game-trick').insertAdjacentHTML('beforeend','<div class="reversed-warning">⚠️ Valeurs inversées — la plus faible l\'emporte !</div>');
-  }
-
-  // Hand
-  const hand=me.hand||[];
-  const isTimerBlind=gs.phase==='timer_5s_blind_play';
-  const isBlindForehead=mission.effect==='blind_forehead';
-  document.getElementById('game-hand-label').textContent=`Votre main (${hand.length} carte${hand.length>1?'s':''})${gs.phase==='three_of_five_select'?' — Cliquez sur 3 cartes à regarder':''}`;
-
-  if(gs.phase==='three_of_five_select'){
-    document.getElementById('game-hand').innerHTML=hand.map(c=>{
-      const sel=selectedCards.includes(c.id);
-      return renderCard(c,{hidden:!sel,selected:sel,onclick:`toggleSelectCard(${c.id})`});
-    }).join('');
-  } else {
-    const hideMyCards=isTimerBlind||isBlindForehead;
-    document.getElementById('game-hand').innerHTML=hand.map(c=>{
-      const canPlay=gs.phase==='playing'&&gs.currentPlayer===playerId;
-      return renderCard(c,{hidden:hideMyCards,onclick:canPlay?`clickCard(${c.id})`:''});
-    }).join('');
-  }
-
-  // Bottom panel
-  renderBottomPanel(gs,me,players);
+  var rw=document.getElementById('revw');if(rw)rw.remove();
+  if(rev)gt.insertAdjacentHTML('beforeend','<div id="revw" class="rwarn">⚠️ Valeurs inversées — la plus faible l\'emporte !</div>');
+  var hand=gh(me);
+  var hidH=['t5sblind','blindmask','revblind'].indexOf(m.e)>=0&&gs.phase==='playing';
+  document.getElementById('ghlbl').textContent='Votre main ('+hand.length+'c)'+(gs.phase==='sel3of5'?' — Sélectionnez 3 cartes':'');
+  var canPlay=gs.phase==='playing'&&gs.cp===PID;
+  document.getElementById('ghand').innerHTML=(gs.phase==='sel3of5')
+    ?hand.map(function(c){var s=SEL.indexOf(c.id)>=0;return mkCard(c,{hid:!s,sel:s,oc:'selCard('+c.id+')'});}).join('')
+    :hand.map(function(c){return mkCard(c,{hid:hidH,oc:canPlay?'clickCard('+c.id+')':''});}).join('');
+  rndrPanel(gs,me,players);
 }
 
-function renderBottomPanel(gs,me,players){
-  const panel=document.getElementById('game-bottom');
-  const ph=gs.phase;
-  const isMyTurn=gs.currentPlayer===playerId;
-  const mission=gs.mission;
-
-  panel.classList.remove('hidden');
-
-  if((ph==='betting'||ph==='bet_before_see')&&isMyTurn){
-    const totalBets=players.reduce((a,p)=>a+(p.bet??0),0);
-    const numCards=mission.cards;
-    const myBet=me.bet??0;
-    const forbidden=mission.effect==='no_bet_0'?[0]:mission.effect==='no_bet_1'?[1]:[];
-    panel.innerHTML=`
-      <div class="bet-info">Total parié : <strong>${totalBets}</strong> / ${numCards} cartes
-        ${totalBets===numCards?'<span style="color:#e63946"> ⚠️ Total interdit !</span>':''}</div>
-      <div class="bet-row">
-        <button class="bet-btn" onclick="changeBet(-1)">−</button>
-        <div class="bet-value" id="live-bet">${myBet}</div>
-        <button class="bet-btn" onclick="changeBet(1)">+</button>
-      </div>
-      ${forbidden.length?`<div style="font-size:11px;color:#ff6b6b;text-align:center;margin-bottom:8px;">Interdit de parier ${forbidden.join(' ou ')}</div>`:''}
-      <button class="btn btn-gold" onclick="submitBet()">✅ Confirmer le pari de <span id="btn-bet-val">${myBet}</span></button>`;
-    window._currentBet=myBet;
-  } else if(ph==='playing'&&isMyTurn){
-    panel.innerHTML=`<div style="text-align:center;color:#2a9d8f;font-size:15px;font-weight:800;">🎯 C'est votre tour — jouez une carte !</div>`;
-  } else if(ph==='three_of_five_select'){
-    panel.innerHTML=`
-      <div style="text-align:center;color:rgba(255,255,255,0.7);font-size:13px;margin-bottom:10px;">${selectedCards.length}/3 cartes sélectionnées</div>
-      <button class="btn btn-blue" onclick="confirmThreeOfFive()" ${selectedCards.length!==3?'disabled style="opacity:0.4"':''}>👁 Regarder ces 3 cartes</button>`;
-  } else if(ph==='designate'&&isMyTurn){
-    const others=players.filter(p=>p.id!==playerId);
-    panel.innerHTML=`
-      <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:10px;text-align:center;">Désignez un joueur (vous recevrez aussi ses Pilis)</div>
-      ${others.map((p,i)=>`<button class="btn" style="margin-bottom:8px;background:${selectedCards[0]===p.id?PLAYER_COLORS[i%PLAYER_COLORS.length]+'44':'rgba(255,255,255,0.07)'};border:1px solid ${selectedCards[0]===p.id?PLAYER_COLORS[i%PLAYER_COLORS.length]:'rgba(255,255,255,0.1)'};" onclick="selectDesignate('${p.id}')">${p.name}</button>`).join('')}
-      <button class="btn btn-red" onclick="confirmDesignate()" ${selectedCards.length!==1?'disabled style="opacity:0.4;margin-top:4px"':'style="margin-top:4px"'}>❤️ Désigner</button>`;
-  } else {
-    panel.innerHTML=`<div class="waiting-msg">⏳ En attente de <strong style="color:#ffd166">${gs.players[gs.currentPlayer]?.name||'...'}</strong></div>`;
-    if(ph==='playing'&&!isMyTurn){}
-    else panel.classList.add('hidden');
-  }
+function rndrPanel(gs,me,players){
+  var bp=document.getElementById('gbottom');
+  var ph=gs.phase,imt=gs.cp===PID,m=gs.m;
+  if((ph==='betting'||ph==='betblind')&&imt){
+    bp.classList.remove('hidden');
+    var tot=players.reduce(function(a,p){return a+(p.bet!==null&&p.bet!==undefined?p.bet:0);},0);
+    var forb=m.e==='nob0'?[0]:(m.e==='nob1'?[1]:[]);
+    if(me.bet===null||me.bet===undefined)BETV=0;
+    bp.innerHTML=
+      '<div class="binfo">Total parié: <strong>'+tot+'</strong>/'+m.n+(tot===m.n?' <span style="color:#e63946">⚠️ Interdit!</span>':'')+'</div>'+
+      (forb.length?'<div style="font-size:11px;color:#ff6b6b;text-align:center;margin-bottom:6px">Interdit de parier '+forb.join(' ou ')+'</div>':'')+
+      '<div class="brow"><button class="bbtn" id="bm" type="button">−</button>'+
+      '<div class="bval" id="bdisp">'+BETV+'</div>'+
+      '<button class="bbtn" id="bp" type="button">+</button></div>'+
+      '<button class="btn btn-gold" id="bok" type="button">✅ Confirmer le pari : <span id="bshow">'+BETV+'</span></button>';
+    function addBtnEvt(id,fn){var el=document.getElementById(id);if(!el)return;el.addEventListener('click',fn);el.addEventListener('touchend',function(e){e.preventDefault();fn();},false);}
+    addBtnEvt('bm',function(){BETV=Math.max(0,BETV-1);updB();});
+    addBtnEvt('bp',function(){BETV=Math.min(m.n,BETV+1);updB();});
+    addBtnEvt('bok',doBet);
+  }else if(ph==='playing'&&imt){
+    bp.classList.remove('hidden');
+    bp.innerHTML='<div style="text-align:center;color:#2a9d8f;font-size:15px;font-weight:800;padding:8px">🎯 C\'est votre tour — jouez une carte !</div>';
+  }else if(ph==='sel3of5'){
+    bp.classList.remove('hidden');
+    var ok3=SEL.length===3;
+    bp.innerHTML='<div style="text-align:center;color:rgba(255,255,255,0.7);font-size:13px;margin-bottom:10px">'+SEL.length+'/3 cartes sélectionnées</div>'+
+      '<button class="btn btn-blue" id="bc3" type="button"'+(ok3?'':' disabled style="opacity:0.4"')+'>👁 Regarder ces 3 cartes</button>';
+    if(ok3){
+      var bc3=document.getElementById('bc3');
+      function doConf3(){act({type:'sel3',cards:SEL.slice()});SEL=[];}
+      bc3.addEventListener('click',doConf3);bc3.addEventListener('touchend',function(e){e.preventDefault();doConf3();},false);
+    }
+  }else if(ph==='desig'&&imt){
+    bp.classList.remove('hidden');
+    var oth=players.filter(function(p){return p.id!==PID;});
+    bp.innerHTML='<div style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:10px;text-align:center">❤️ Désignez un joueur</div>'+
+      oth.map(function(p,i){var s=SEL[0]===p.id;
+        return'<button class="btn desb" data-pid="'+p.id+'" type="button" style="margin-bottom:8px;background:'+(s?PC[i%PC.length]+'44':'rgba(255,255,255,0.07)')+';border:1px solid '+(s?PC[i%PC.length]:'rgba(255,255,255,0.1)')+'">'+esc(p.name)+'</button>';
+      }).join('')+
+      '<button class="btn btn-red" id="bcd" type="button"'+(SEL.length===1?'':' disabled style="opacity:0.4"')+'>❤️ Désigner</button>';
+    document.querySelectorAll('.desb').forEach(function(b){
+      function doSelD(){SEL=[b.dataset.pid];if(GS)rndrGame(GS);}
+      b.addEventListener('click',doSelD);b.addEventListener('touchend',function(e){e.preventDefault();doSelD();},false);
+    });
+    if(SEL.length===1){
+      var bcd=document.getElementById('bcd');
+      function doCD(){act({type:'desig',target:SEL[0]});SEL=[];}
+      bcd.addEventListener('click',doCD);bcd.addEventListener('touchend',function(e){e.preventDefault();doCD();},false);
+    }
+  }else if(ph==='playing'&&!imt){
+    bp.classList.remove('hidden');
+    var cur=gs.players[gs.cp];
+    bp.innerHTML='<div class="wmsg">⏳ En attente de <strong style="color:#ffd166">'+esc(cur?cur.name:'...')+'</strong></div>';
+  }else{bp.classList.add('hidden');}
 }
 
-// ── CARD INTERACTIONS ─────────────────────────────────────────────────────
-function toggleSelectCard(cardId){
-  if(selectedCards.includes(cardId)){
-    selectedCards=selectedCards.filter(x=>x!==cardId);
-  } else if(selectedCards.length<3){
-    selectedCards.push(cardId);
-  }
-  if(gameState)renderGame(gameState);
+function updB(){var d=document.getElementById('bdisp'),s=document.getElementById('bshow');if(d)d.textContent=BETV;if(s)s.textContent=BETV;}
+
+function doBet(){
+  if(!GS)return;
+  var bet=BETV,gs=GS,pl=spl(gs),m=gs.m;
+  if(m.e==='nob0'&&bet===0){toast('⛔ Interdit de parier 0!');return;}
+  if(m.e==='nob1'&&bet===1){toast('⛔ Interdit de parier 1!');return;}
+  if(m.e==='nocopy'){var mi=pl.findIndex(function(p){return p.id===PID;});if(mi>0&&pl[mi-1].bet===bet){toast('⛔ Interdit de copier!');return;}}
+  var oth=pl.filter(function(p){return p.id!==PID&&p.bet!==null&&p.bet!==undefined;});
+  var so=oth.reduce(function(a,p){return a+p.bet;},0);
+  if(pl.filter(function(p){return p.bet===null||p.bet===undefined;}).length===1&&so+bet===m.n){toast('⛔ Total interdit: '+m.n);return;}
+  act({type:'bet',v:bet});
 }
 
-function confirmThreeOfFive(){
-  if(selectedCards.length!==3)return;
-  processAction(playerId,{type:'select_three',cards:[...selectedCards]});
-  selectedCards=[];
+function selCard(id){var i=SEL.indexOf(id);if(i>=0)SEL.splice(i,1);else if(SEL.length<3)SEL.push(id);if(GS)rndrGame(GS);}
+function clickCard(id){
+  if(!GS||GS.cp!==PID||GS.phase!=='playing')return;
+  var hand=gh(GS.players[PID]);var c=hand.find(function(x){return x.id===id;});if(!c)return;
+  if(c.j){JKPND=id;document.getElementById('modal-joker').classList.remove('hidden');return;}
+  act({type:'play',id:id,v:c.v,j:false});
 }
 
-function selectDesignate(targetId){
-  selectedCards=[targetId];
-  if(gameState)renderGame(gameState);
-}
-
-function confirmDesignate(){
-  if(!selectedCards[0])return;
-  processAction(playerId,{type:'designate_player',targetId:selectedCards[0]});
-  selectedCards=[];
-}
-
-let _liveBet=0;
-function changeBet(delta){
-  _liveBet=Math.max(0,Math.min((gameState?.mission?.cards||5),(_liveBet||window._currentBet||0)+delta));
-  window._currentBet=_liveBet;
-  const el=document.getElementById('live-bet');
-  const el2=document.getElementById('btn-bet-val');
-  if(el)el.textContent=_liveBet;
-  if(el2)el2.textContent=_liveBet;
-}
-
-function submitBet(){
-  const bet=window._currentBet||0;
-  const gs=gameState;
-  const players=sortedPlayers(gs);
-  const mission=gs.mission;
-  // Check forbidden
-  if(mission.effect==='no_bet_0'&&bet===0){showToast('Interdit de parier 0 !');return;}
-  if(mission.effect==='no_bet_1'&&bet===1){showToast('Interdit de parier 1 !');return;}
-  // Check no_copy_bet
-  if(mission.effect==='no_copy_bet'){
-    const myIdx=players.findIndex(p=>p.id===playerId);
-    if(myIdx>0&&players[myIdx-1].bet===bet){showToast('Interdit de copier le pari précédent !');return;}
-  }
-  // Check constraint: sum must not equal numCards
-  const others=players.filter(p=>p.id!==playerId&&p.bet!==null&&p.bet!==undefined);
-  const sumOthers=others.reduce((a,p)=>a+p.bet,0);
-  if(sumOthers+bet===mission.cards){
-    const isLast=players.filter(p=>p.bet===null||p.bet===undefined).length===1;
-    if(isLast){showToast(`Interdit ! Le total ne peut pas être ${mission.cards}`);return;}
-  }
-  processAction(playerId,{type:'place_bet',bet});
-}
-
-function clickCard(cardId){
-  const gs=gameState;
-  if(!gs||gs.currentPlayer!==playerId||gs.phase!=='playing')return;
-  const me=gs.players[playerId];
-  const card=me.hand.find(c=>c.id===cardId);
-  if(!card)return;
-  if(card.isJoker){pendingJokerCardId=cardId;openJokerModal();return;}
-  processAction(playerId,{type:'play_card',cardId,value:card.value,isJoker:false});
-}
-
-function openJokerModal(){document.getElementById('modal-joker').classList.remove('hidden');}
-function closeJokerModal(){document.getElementById('modal-joker').classList.add('hidden');pendingJokerCardId=null;}
-function confirmJoker(){
-  const val=parseInt(document.getElementById('joker-slider').value);
-  document.getElementById('modal-joker').classList.add('hidden');
-  if(pendingJokerCardId!==null)processAction(playerId,{type:'play_card',cardId:pendingJokerCardId,value:val,isJoker:true});
-  pendingJokerCardId=null;
-}
-
-// ── TIMER UI ──────────────────────────────────────────────────────────────
-function startTimerUI(endTs,onDone){
-  clearInterval(timerInterval);
-  const div=document.getElementById('game-timer');
-  div.classList.remove('hidden');
-  timerInterval=setInterval(()=>{
-    const left=Math.max(0,Math.ceil((endTs-Date.now())/1000));
-    div.innerHTML=`<div class="timer-number" style="color:${left<=2?'#e63946':'#ffd166'}">${left}</div><div class="timer-label">Mémorisez vos cartes !</div>`;
-    if(left<=0){clearInterval(timerInterval);div.classList.add('hidden');if(onDone)onDone();}
+function startTmr(endTs,cb){
+  clearInterval(TMRIV);var d=document.getElementById('gtimer');d.classList.remove('hidden');
+  TMRIV=setInterval(function(){
+    var l=Math.max(0,Math.ceil((endTs-Date.now())/1000));
+    d.innerHTML='<div class="tnum" style="color:'+(l<=2?'#e63946':'#ffd166')+'">'+l+'</div><div style="color:rgba(255,255,255,0.6);font-size:13px">Mémorisez !</div>';
+    if(l<=0){clearInterval(TMRIV);d.classList.add('hidden');if(cb)cb();}
   },200);
 }
 
-// ── RESULTS RENDER ────────────────────────────────────────────────────────
-function renderResults(gs){
-  showScreen('results');
-  const players=sortedPlayers(gs).sort((a,b)=>a.pilis-b.pilis);
-  const gameOver=Object.values(gs.players||{}).some(p=>p.pilis>=6);
-  document.getElementById('results-emoji').textContent=gameOver?'🏆':'📊';
-  document.getElementById('results-title').textContent=gameOver?'Fin de partie !':`Résultats — Manche ${gs.round||1}`;
-  document.getElementById('results-list').innerHTML=players.map((p,i)=>{
-    const diff=Math.abs((p.bet??0)-(p.tricksWon||0));
-    const ok=diff===0;
-    return `<div class="result-row" style="background:${p.id===playerId?'rgba(255,209,102,0.1)':'rgba(255,255,255,0.04)'};border:1px solid ${p.id===playerId?'rgba(255,209,102,0.4)':'rgba(255,255,255,0.08)'};">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div class="result-name" style="color:${i===0&&gameOver?'#ffd166':'#fff'}">${i===0&&gameOver?'🏆 ':''}${p.name}${p.isAI?' 🤖':''}</div>
-          <div class="pili-track" style="margin-top:4px;">${renderPiliTrack(p.pilis||0)}</div>
-        </div>
-        <div style="text-align:right;">
-          <div class="result-status" style="color:${ok?'#2a9d8f':'#e63946'}">${ok?'✅ Réussi !':'❌ +'+diff+' Pili'+(diff>1?'s':'')}</div>
-          <div class="result-detail">Pari: ${p.bet??'-'} · Plis: ${p.tricksWon||0}</div>
-        </div>
-      </div>
-    </div>`;
+function rndrResults(gs){
+  scr('results');
+  var all=spl(gs),over=all.some(function(p){return(p.pilis||0)>=6;});
+  var ranked=all.slice().sort(function(a,b){return(a.pilis||0)-(b.pilis||0);});
+  document.getElementById('remoji').textContent=over?'🏆':'📊';
+  document.getElementById('rtitle').textContent=over?'Fin de partie !':'Résultats — Manche '+(gs.round||1);
+  document.getElementById('rlist').innerHTML=ranked.map(function(p,i){
+    var diff=Math.abs((p.bet||0)-(p.tw||0)),ok=diff===0;
+    return'<div class="rrow" style="background:'+(p.id===PID?'rgba(255,209,102,0.1)':'rgba(255,255,255,0.04)')+';border:1px solid '+(p.id===PID?'rgba(255,209,102,0.4)':'rgba(255,255,255,0.08)')+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center">'+
+      '<div><div class="rname" style="color:'+(i===0&&over?'#ffd166':'#fff')+'">'+(i===0&&over?'🏆 ':'')+esc(p.name)+(p.isAI?' 🤖':'')+'</div>'+
+      '<div class="ptk" style="margin-top:4px">'+ptk(p.pilis||0)+'</div></div>'+
+      '<div style="text-align:right"><div style="font-size:13px;font-weight:800;color:'+(ok?'#2a9d8f':'#e63946')+'">'+(ok?'✅ Réussi!':'❌ +'+diff+'Pili'+(diff>1?'s':''))+'</div>'+
+      '<div style="font-size:11px;color:rgba(255,255,255,0.5)">P:'+(p.bet!==null&&p.bet!==undefined?p.bet:'-')+' T:'+(p.tw||0)+'</div></div></div></div>';
   }).join('');
-  const actDiv=document.getElementById('results-actions');
-  if(isHost){
-    if(!gameOver){
-      actDiv.innerHTML=`<button class="btn btn-teal" onclick="handleNextRound()">➡️ Manche suivante</button>`;
-    } else {
-      actDiv.innerHTML=`<button class="btn btn-red" onclick="handleNewGame()">🔄 Nouvelle partie</button>`;
-    }
-  } else {
-    actDiv.innerHTML=`<div style="text-align:center;color:rgba(255,255,255,0.4);font-size:14px;">En attente de l'hôte...</div>`;
-  }
+  var ad=document.getElementById('ract');
+  function addRA(id,fn){var el=document.getElementById(id);if(!el)return;el.addEventListener('click',fn);el.addEventListener('touchend',function(e){e.preventDefault();fn();},false);}
+  if(HOST){
+    if(!over){ad.innerHTML='<button class="btn btn-teal" id="bnext" type="button">➡️ Manche suivante</button>';addRA('bnext',doNextRound);}
+    else{ad.innerHTML='<button class="btn btn-red" id="bnew" type="button">🔄 Nouvelle partie</button>';addRA('bnew',doNewGame);}
+  }else{ad.innerHTML='<div style="text-align:center;color:rgba(255,255,255,0.4);font-size:13px;padding:16px">En attente de l\'hôte...</div>';}
 }
 
-async function handleNextRound(){
-  if(!gameState||!roomCode)return;
-  const gs=gameState;
-  const players=sortedPlayers(gs);
-  const newDealer=(gs.dealer+1)%players.length;
-  const mission=MISSIONS[Math.floor(Math.random()*MISSIONS.length)];
-  const hands=dealCards(mission,players.length);
-  const playersObj={};
-  players.forEach((p,i)=>{
-    playersObj[p.id]={...p,hand:hands[i],bet:null,tricksWon:0,designatedTarget:null,revealedCards:null};
-  });
-  const phase=getInitialPhase(mission);
-  const firstP=players[newDealer%players.length];
-  await db.ref(`rooms/${roomCode}`).update({
-    phase,mission,round:(gs.round||1)+1,dealer:newDealer,
-    players:playersObj,currentPlayer:phase==='betting'||phase==='bet_before_see'?firstP.id:null,
-    currentTrick:{},trickHistory:{},
-    timerEnd:['timer_3s','timer_5s_blind'].includes(mission.effect)?Date.now()+(mission.effect==='timer_3s'?3000:5000):null
-  });
+function doNextRound(){
+  if(!GS||!ROOM)return;
+  if(Object.values(GS.players||{}).some(function(p){return(p.pilis||0)>=6;})){toast('Partie terminée!');return;}
+  var players=spl(GS),nd=((GS.dealer||0)+1)%players.length;
+  var m=MISS[Math.floor(Math.random()*MISS.length)];
+  var deck=rnd(mkDeck()),hands=[];
+  for(var i=0;i<players.length;i++)hands.push(deck.slice(i*m.n,(i+1)*m.n));
+  var po={};
+  players.forEach(function(p,i){po[p.id]={id:p.id,name:p.name,isAI:p.isAI||false,o:i,hand:hands[i],bet:null,tw:0,pilis:p.pilis||0,dt:null,rc:null};});
+  var ph=initPh(m),fid=players[nd%players.length].id;
+  var te=m.e==='t3s'?Date.now()+3000:m.e==='t5sblind'?Date.now()+5000:null;
+  DB.ref('rooms/'+ROOM).update({phase:ph,m:m,round:(GS.round||1)+1,dealer:nd,players:po,
+    cp:(ph==='betting'||ph==='betblind')?fid:null,trick:{_x:true},hist:{_x:true},timerEnd:te});
 }
 
-async function handleNewGame(){
-  if(roomCode){await db.ref(`rooms/${roomCode}`).remove();}
-  roomCode=null;isHost=false;gameState=null;selectedCards=[];
-  showScreen('home');
+function doNewGame(){
+  if(ROOM&&DB)DB.ref('rooms/'+ROOM).remove().catch(function(){});
+  if(LSTNR&&DB){DB.ref('rooms/'+LSTNR).off('value');LSTNR=null;}
+  ROOM=null;HOST=false;GS=null;SEL=[];scr('home');
 }
 
-// ── ACTION PROCESSOR ──────────────────────────────────────────────────────
-async function processAction(actPid,action){
-  if(!roomCode)return;
-  const snap=await db.ref(`rooms/${roomCode}`).get();
-  const gs=snap.val();
-  if(!gs)return;
-  const updates={};
-  const {phase,players,mission,currentTrick,trickHistory,dealer}=gs;
-  const playerList=sortedPlayers(gs);
-  const numPlayers=playerList.length;
-  const reversed=mission.effect==='reversed'||mission.effect==='reversed_hidden';
-
-  if((action.type==='place_bet')&&(phase==='betting'||phase==='bet_before_see')){
-    updates[`rooms/${roomCode}/players/${actPid}/bet`]=action.bet;
-    const idx=playerList.findIndex(p=>p.id===actPid);
-    const nextUnbet=playerList.slice(idx+1).find(p=>p.bet===null||p.bet===undefined);
-    if(nextUnbet){
-      updates[`rooms/${roomCode}/currentPlayer`]=nextUnbet.id;
-    } else {
-      // All bets in — next phase
-      const np=getPostBetPhase(mission);
-      updates[`rooms/${roomCode}/phase`]=np;
-      if(np==='playing'){
-        updates[`rooms/${roomCode}/currentPlayer`]=playerList[dealer%numPlayers].id;
-      } else if(np==='designate'||np==='exchange_select'){
-        updates[`rooms/${roomCode}/currentPlayer`]=playerList[dealer%numPlayers].id;
-      }
+// ════════════════════════════════════════════════════
+// ACTION PRINCIPALE
+// ════════════════════════════════════════════════════
+function act(action){
+  if(!ROOM||!DB){toast('⚠️ Non connecté');return;}
+  if(BUSY)return;BUSY=true;
+  DB.ref('rooms/'+ROOM).get()
+  .then(function(s){
+    var gs=s.val();if(!gs){BUSY=false;return;}
+    var upd={},ph=gs.phase,players=gs.players,m=gs.m,dealer=gs.dealer||0;
+    var trick=clnT(gs.trick||{}),hist=clnT(gs.hist||{});
+    var pl=spl(gs),np=pl.length,rev=m.e==='rev'||m.e==='revblind';
+    var who=action.pid||PID;
+    if(action.type==='bet'&&(ph==='betting'||ph==='betblind')){
+      upd['rooms/'+ROOM+'/players/'+who+'/bet']=action.v;
+      var idx=pl.findIndex(function(p){return p.id===who;});
+      var nb=null;for(var i=idx+1;i<pl.length;i++){if(pl[i].bet===null||pl[i].bet===undefined){nb=pl[i];break;}}
+      if(nb){upd['rooms/'+ROOM+'/cp']=nb.id;}
+      else{var nph=postBet(m);upd['rooms/'+ROOM+'/phase']=nph;upd['rooms/'+ROOM+'/cp']=(nph==='playing'||nph==='desig')?pl[dealer%np].id:null;}
     }
-  }
-
-  if(action.type==='select_three'&&phase==='three_of_five_select'){
-    updates[`rooms/${roomCode}/players/${actPid}/revealedCards`]=action.cards;
-    const allDone=playerList.every(p=>p.id===actPid||(p.revealedCards&&p.revealedCards.length===3));
-    if(allDone){
-      updates[`rooms/${roomCode}/phase`]='betting';
-      updates[`rooms/${roomCode}/currentPlayer`]=playerList[dealer%numPlayers].id;
+    if(action.type==='sel3'&&ph==='sel3of5'){
+      upd['rooms/'+ROOM+'/players/'+who+'/rc']=action.cards;
+      var updP=JSON.parse(JSON.stringify(players));updP[who].rc=action.cards;
+      if(Object.values(updP).every(function(p){return p.rc&&p.rc.length===3;})){upd['rooms/'+ROOM+'/phase']='betting';upd['rooms/'+ROOM+'/cp']=pl[dealer%np].id;}
     }
-  }
-
-  if(action.type==='designate_player'&&phase==='designate'){
-    updates[`rooms/${roomCode}/players/${actPid}/designatedTarget`]=action.targetId;
-    const idx=playerList.findIndex(p=>p.id===actPid);
-    const nextUndone=playerList.slice(idx+1).find(p=>!p.designatedTarget);
-    if(nextUndone){
-      updates[`rooms/${roomCode}/currentPlayer`]=nextUndone.id;
-    } else {
-      updates[`rooms/${roomCode}/phase`]='playing';
-      updates[`rooms/${roomCode}/currentPlayer`]=playerList[dealer%numPlayers].id;
+    if(action.type==='desig'&&ph==='desig'){
+      upd['rooms/'+ROOM+'/players/'+who+'/dt']=action.target;
+      var idx2=pl.findIndex(function(p){return p.id===who;}),nu=null;
+      for(var j=idx2+1;j<pl.length;j++){if(!pl[j].dt){nu=pl[j];break;}}
+      if(nu){upd['rooms/'+ROOM+'/cp']=nu.id;}else{upd['rooms/'+ROOM+'/phase']='playing';upd['rooms/'+ROOM+'/cp']=pl[dealer%np].id;}
     }
-  }
-
-  if(action.type==='play_card'&&phase==='playing'){
-    const player=players[actPid];
-    const card=player.hand.find(c=>c.id===action.cardId);
-    if(!card)return;
-    const newHand=player.hand.filter(c=>c.id!==action.cardId);
-    updates[`rooms/${roomCode}/players/${actPid}/hand`]=newHand;
-    const played=action.isJoker?{...card,value:action.value}:card;
-    updates[`rooms/${roomCode}/currentTrick/${actPid}`]=played;
-    const newTrick={...(currentTrick||{}),[actPid]:played};
-    const allPlayed=Object.keys(newTrick).length===numPlayers;
-    if(allPlayed){
-      // Resolve trick
-      let winnerId=null,winVal=reversed?Infinity:-Infinity;
-      for(const[pid,c] of Object.entries(newTrick)){
-        const v=effectiveVal(c,reversed);
-        if(reversed?v<winVal:v>winVal){winVal=v;winnerId=pid;}
-      }
-      // Bonus Pilis
-      let bonusPilis={};
-      if(mission.effect==='cursed'&&mission.cursed){
-        const hasCursed=Object.values(newTrick).some(c=>!c.isJoker&&mission.cursed.includes(c.value));
-        if(hasCursed&&winnerId)bonusPilis[winnerId]=(bonusPilis[winnerId]||0)+1;
-      }
-      if(mission.effect==='first_last_cursed'){
-        const histLen=Object.keys(trickHistory||{}).length;
-        const isFirst=histLen===0;
-        const isLast=newHand.length===0&&playerList.every(p=>p.id===actPid||(p.hand&&p.hand.length===0));
-        if((isFirst||isLast)&&winnerId)bonusPilis[winnerId]=(bonusPilis[winnerId]||0)+1;
-      }
-      for(const[pid,b] of Object.entries(bonusPilis)){
-        updates[`rooms/${roomCode}/players/${pid}/pilis`]=(players[pid].pilis||0)+b;
-      }
-      updates[`rooms/${roomCode}/players/${winnerId}/tricksWon`]=(players[winnerId].tricksWon||0)+1;
-      const newHistory={...(trickHistory||{}),[Object.keys(trickHistory||{}).length]:newTrick};
-      updates[`rooms/${roomCode}/trickHistory`]=newHistory;
-      updates[`rooms/${roomCode}/currentTrick`]={};
-      // Check if hands empty
-      const updatedHands={};
-      playerList.forEach(p=>{updatedHands[p.id]=p.id===actPid?newHand:p.hand;});
-      const handsEmpty=Object.values(updatedHands).every(h=>!h||h.length===0);
-      if(handsEmpty){
-        // End of round
-        for(const p of playerList){
-          const tw=p.id===winnerId?(p.tricksWon||0)+1:p.id===actPid?(p.tricksWon||0)+1:p.tricksWon||0;
-          const actualTw=updates[`rooms/${roomCode}/players/${p.id}/tricksWon`]??tw;
-          const diff=Math.abs((p.bet??0)-actualTw);
-          let gained=diff;
-          if(mission.effect==='bet_success_minus_pili'&&diff===0)gained=-(p.bet??0);
-          let newP=Math.max(0,(updates[`rooms/${roomCode}/players/${p.id}/pilis`]??p.pilis??0)+gained);
-          // Designate
-          if(mission.effect==='designate'&&p.designatedTarget){
-            const tgt=players[p.designatedTarget];
-            const tgtTw=updates[`rooms/${roomCode}/players/${p.designatedTarget}/tricksWon`]??tgt.tricksWon??0;
-            const tgtDiff=Math.abs((tgt.bet??0)-tgtTw);
-            newP=Math.max(0,newP+tgtDiff);
-          }
-          updates[`rooms/${roomCode}/players/${p.id}/pilis`]=newP;
+    if(action.type==='play'&&ph==='playing'){
+      var player=players[who];if(!player){BUSY=false;return;}
+      var h=gh(player),card=h.find(function(c){return c.id===action.id;});if(!card){BUSY=false;return;}
+      var nh=h.filter(function(c){return c.id!==action.id;});
+      upd['rooms/'+ROOM+'/players/'+who+'/hand']=nh.length>0?nh:{_x:true};
+      var played=action.j?{id:card.id,v:action.v,j:true}:card;
+      upd['rooms/'+ROOM+'/trick/'+who]=played;
+      var nt=Object.assign({},trick);nt[who]=played;
+      if(Object.keys(nt).length===np){
+        var wid=null,wv=rev?Infinity:-Infinity;
+        Object.entries(nt).forEach(function(e){var v=ev(e[1],rev);if(rev?v<wv:v>wv){wv=v;wid=e[0];}});
+        if(!wid)wid=who;
+        var bon={};
+        if(m.e==='cursed'&&m.c&&Object.values(nt).some(function(c){return!c.j&&m.c.indexOf(c.v)>=0;}))bon[wid]=(bon[wid]||0)+1;
+        if(m.e==='fl'){
+          var hl=Object.keys(hist).length,isF=hl===0;
+          var uh={};pl.forEach(function(p){uh[p.id]=p.id===who?nh:gh(p);});
+          if(isF||Object.values(uh).every(function(x){return!x||x.length===0;}))bon[wid]=(bon[wid]||0)+1;
         }
-        updates[`rooms/${roomCode}/phase`]='results';
-        updates[`rooms/${roomCode}/currentPlayer`]=null;
-      } else {
-        updates[`rooms/${roomCode}/currentPlayer`]=winnerId;
+        Object.entries(bon).forEach(function(e){upd['rooms/'+ROOM+'/players/'+e[0]+'/pilis']=(players[e[0]].pilis||0)+e[1];});
+        var ntw=(players[wid].tw||0)+1;
+        upd['rooms/'+ROOM+'/players/'+wid+'/tw']=ntw;
+        upd['rooms/'+ROOM+'/hist/'+Object.keys(hist).length]=nt;
+        upd['rooms/'+ROOM+'/trick']={_x:true};
+        var unh={};pl.forEach(function(p){unh[p.id]=p.id===who?nh:gh(p);});
+        if(Object.values(unh).every(function(x){return!x||x.length===0;})){
+          pl.forEach(function(p){
+            var tw=p.id===wid?ntw:(p.tw||0),diff=Math.abs((p.bet||0)-tw);
+            var g=m.e==='winminus'&&diff===0?-(p.bet||0):diff;
+            var base=upd['rooms/'+ROOM+'/players/'+p.id+'/pilis'];if(base===undefined)base=p.pilis||0;
+            var np2=Math.max(0,base+g);
+            if(m.e==='desig'&&p.dt&&players[p.dt]){var tgt=players[p.dt],ttw=tgt.id===wid?ntw:(tgt.tw||0);np2=Math.max(0,np2+Math.abs((tgt.bet||0)-ttw));}
+            upd['rooms/'+ROOM+'/players/'+p.id+'/pilis']=np2;
+          });
+          upd['rooms/'+ROOM+'/phase']='results';upd['rooms/'+ROOM+'/cp']=null;
+        }else{upd['rooms/'+ROOM+'/cp']=wid;}
+      }else{
+        var ci=pl.findIndex(function(p){return p.id===who;});
+        upd['rooms/'+ROOM+'/cp']=pl[(ci+1)%np].id;
       }
-    } else {
-      const idx=playerList.findIndex(p=>p.id===actPid);
-      updates[`rooms/${roomCode}/currentPlayer`]=playerList[(idx+1)%numPlayers].id;
     }
-  }
-
-  await db.ref().update(updates);
+    return DB.ref().update(upd);
+  })
+  .then(function(){BUSY=false;})
+  .catch(function(e){toast('Erreur: '+e.message);console.error(e);BUSY=false;});
 }
 
-function getPostBetPhase(mission){
-  if(mission.effect==='designate')return 'designate';
-  return 'playing';
-}
-
-// ── AI ────────────────────────────────────────────────────────────────────
-function handleAITurn(gs,aiId){
-  const{phase,players,mission,currentTrick}=gs;
-  const ai=players[aiId];
-  const playerList=sortedPlayers(gs);
-  const aiIdx=playerList.findIndex(p=>p.id===aiId);
-  const reversed=mission.effect==='reversed'||mission.effect==='reversed_hidden';
-  if(phase==='betting'||phase==='bet_before_see'){
-    const existing=playerList.slice(0,aiIdx).map(p=>p.bet??0);
-    let est=ai.hand.filter(c=>effectiveVal(c,reversed)>(reversed?28:28)).length;
-    if(ai.hand.some(c=>c.isJoker))est=Math.max(est,Math.floor(ai.hand.length*0.6));
-    est=Math.max(0,Math.min(est,ai.hand.length));
-    if(aiIdx===playerList.length-1){
-      const s=existing.reduce((a,b)=>a+b,0);
-      if(s+est===mission.cards)est=est>0?est-1:est+1;
-    }
-    if(mission.effect==='no_bet_0'&&est===0)est=1;
-    if(mission.effect==='no_bet_1'&&est===1)est=2;
-    processAction(aiId,{type:'place_bet',bet:Math.max(0,Math.min(est,ai.hand.length))});
-  } else if(phase==='playing'){
-    const tCards=Object.values(currentTrick||{});
-    const sorted=[...ai.hand].sort((a,b)=>effectiveVal(a,reversed)-effectiveVal(b,reversed));
-    let card;
-    if(tCards.length===0){card=sorted[Math.floor(sorted.length/2)];}
-    else{
-      const maxP=Math.max(...tCards.map(c=>effectiveVal(c,reversed)));
-      const winners=sorted.filter(c=>effectiveVal(c,reversed)>maxP);
-      card=winners.length>0?winners[0]:sorted[sorted.length-1];
-    }
+// ════════════════════════════════════════════════════
+// IA
+// ════════════════════════════════════════════════════
+function aiTurn(gs,aiId){
+  if(BUSY)return;
+  var ph=gs.phase,m=gs.m,ai=gs.players[aiId];if(!ai)return;
+  var hand=gh(ai);if(!hand||!hand.length)return;
+  var pl=spl(gs),ii=pl.findIndex(function(p){return p.id===aiId;});
+  var rev=m.e==='rev'||m.e==='revblind',trick=clnT(gs.trick||{});
+  if(ph==='betting'||ph==='betblind'){
+    var ex=pl.slice(0,ii).map(function(p){return p.bet||0;});
+    var est=hand.filter(function(c){return ev(c,rev)>28;}).length;
+    if(hand.some(function(c){return c.j;}))est=Math.max(est,Math.ceil(hand.length*0.55));
+    est=Math.max(0,Math.min(est,hand.length));
+    if(ii===pl.length-1){var s=ex.reduce(function(a,b){return a+b;},0);if(s+est===m.n)est=est>0?est-1:est+1;}
+    if(m.e==='nob0'&&est===0)est=1;if(m.e==='nob1'&&est===1)est=2;
+    act({type:'bet',v:Math.max(0,Math.min(est,hand.length)),pid:aiId});
+  }else if(ph==='playing'){
+    var tc=Object.values(trick);
+    var sorted=hand.slice().sort(function(a,b){return ev(a,rev)-ev(b,rev);});
+    var card=tc.length===0?sorted[Math.floor(sorted.length/2)]:(function(){
+      var mx=Math.max.apply(null,tc.map(function(c){return ev(c,rev);}));
+      var wn=sorted.filter(function(c){return ev(c,rev)>mx;});
+      return wn.length?wn[0]:sorted[sorted.length-1];
+    })();
     if(!card)return;
-    processAction(aiId,{type:'play_card',cardId:card.id,value:card.isJoker?28:card.value,isJoker:card.isJoker});
-  } else if(phase==='three_of_five_select'){
-    processAction(aiId,{type:'select_three',cards:ai.hand.slice(0,3).map(c=>c.id)});
-  } else if(phase==='designate'){
-    const others=playerList.filter(p=>p.id!==aiId);
-    if(others.length>0)processAction(aiId,{type:'designate_player',targetId:others[0].id});
+    act({type:'play',id:card.id,v:card.j?28:card.v,j:card.j||false,pid:aiId});
+  }else if(ph==='sel3of5'){
+    var s2=hand.slice().sort(function(a,b){return ev(b,rev)-ev(a,rev);});
+    act({type:'sel3',cards:s2.slice(0,3).map(function(c){return c.id;}),pid:aiId});
+  }else if(ph==='desig'){
+    var oth=pl.filter(function(p){return p.id!==aiId;});
+    if(oth.length)act({type:'desig',target:oth[0].id,pid:aiId});
+  }else if(ph==='reveal'&&HOST){
+    var pll=spl(gs);DB.ref('rooms/'+ROOM).update({phase:'playing',cp:pll[gs.dealer%pll.length].id});
   }
 }
 
-// Init
-window._currentBet=0;
-_liveBet=0;
+// ════════════════════════════════════════════════════
+// DÉMARRAGE — window.onload garantit Firebase chargé
+// ════════════════════════════════════════════════════
+// Firebase est en <head> donc disponible ici
+// On attend que le DOM soit prêt
+document.addEventListener('DOMContentLoaded', function() {
+  attachAll();
+  initFirebase();
+});
 </script>
 </body>
 </html>
