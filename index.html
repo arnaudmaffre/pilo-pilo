@@ -101,6 +101,7 @@ input[type=range]{width:100%;accent-color:#ffd166;}
   <div class="logo-emoji">🌶️</div>
   <div class="logo-title">PILI PILI</div>
   <div class="logo-sub">LE JEU DE PLIS ET DE PARIS</div>
+  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.0</div>
   <div id="fb-status" class="status-box s-wait">⏳ Initialisation...</div>
   <div class="form-group">
     <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
@@ -458,9 +459,25 @@ function subRoom(code){
       }
     }
     if(data.phase==='timer'&&data.timerEnd){
-      startTmr(data.timerEnd,function(){
-        if(HOST){var pl=spl(data);DB.ref('rooms/'+code).update({phase:'betting',cp:pl[data.dealer%pl.length].id});}
-      });
+      // EVO-002: show reveal button, then auto-start timer on click
+      var timerDiv=document.getElementById('gtimer');
+      timerDiv.classList.remove('hidden');
+      timerDiv.innerHTML='<div style="text-align:center;padding:10px">'+
+        '<div style="color:rgba(255,255,255,0.6);font-size:14px;margin-bottom:12px">🃏 Vos cartes sont cachées</div>'+
+        '<button id="btn-reveal-cards" class="btn btn-teal" style="max-width:280px;margin:0 auto" type="button">👁 Révéler mes cartes ('+
+        (data.m.e==='t3s'?'3':'5')+'s)</button></div>';
+      var brc=document.getElementById('btn-reveal-cards');
+      if(brc){
+        function doRevealTimer(){
+          brc.disabled=true;
+          if(GS)rndrGame(GS); // show cards
+          startTmr(Date.now()+(data.m.e==='t3s'?3000:5000),function(){
+            if(HOST){var pl=spl(data);DB.ref('rooms/'+code).update({phase:'betting',cp:pl[data.dealer%pl.length].id});}
+          });
+        }
+        brc.addEventListener('click',doRevealTimer);
+        brc.addEventListener('touchend',function(e){e.preventDefault();doRevealTimer();},false);
+      }
     }
   });
 }
@@ -586,7 +603,7 @@ function rndrGame(gs){
   var rw=document.getElementById('revw');if(rw)rw.remove();
   if(rev)gt.insertAdjacentHTML('beforeend','<div id="revw" class="rwarn">⚠️ Valeurs inversées — la plus faible l\'emporte !</div>');
   var hand=gh(me);
-  var hidH=['t5sblind','blindmask','revblind'].indexOf(m.e)>=0&&gs.phase==='playing';
+  var hidH=(['t5sblind','blindmask','revblind'].indexOf(m.e)>=0&&gs.phase==='playing')||gs.phase==='timer';
   document.getElementById('ghlbl').textContent='Votre main ('+hand.length+'c)'+(gs.phase==='sel3of5'?' — Sélectionnez 3 cartes':'');
   var canPlay=gs.phase==='playing'&&gs.cp===PID;
   document.getElementById('ghand').innerHTML=(gs.phase==='sel3of5')
@@ -716,8 +733,14 @@ function doNextRound(){
   players.forEach(function(p,i){po[p.id]={id:p.id,name:p.name,isAI:p.isAI||false,o:i,hand:hands[i],bet:null,tw:0,pilis:p.pilis||0,dt:null,rc:null};});
   var ph=initPh(m),fid=players[nd%players.length].id;
   var te=m.e==='t3s'?Date.now()+3000:m.e==='t5sblind'?Date.now()+5000:null;
-  DB.ref('rooms/'+ROOM).update({phase:ph,m:m,round:(GS.round||1)+1,dealer:nd,players:po,
-    cp:(ph==='betting'||ph==='betblind')?fid:null,trick:{_x:true},hist:{_x:true},timerEnd:te});
+  // ANO-027 FIX: reset trick et hist séparément pour éviter conflit Firebase
+  DB.ref('rooms/'+ROOM+'/trick').set({_x:true})
+  .then(function(){return DB.ref('rooms/'+ROOM+'/hist').set({_x:true});})
+  .then(function(){return DB.ref('rooms/'+ROOM).update({
+    phase:ph,m:m,round:(GS.round||1)+1,dealer:nd,players:po,
+    cp:(ph==='betting'||ph==='betblind')?fid:null,timerEnd:te
+  });})
+  .catch(function(e){toast('Erreur manche suivante: '+e.message);console.error(e);});
 }
 
 function doNewGame(){
