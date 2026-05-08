@@ -763,9 +763,12 @@ function act(action){
       var nh=h.filter(function(c){return c.id!==action.id;});
       upd['rooms/'+ROOM+'/players/'+who+'/hand']=nh.length>0?nh:{_x:true};
       var played=action.j?{id:card.id,v:action.v,j:true}:card;
-      upd['rooms/'+ROOM+'/trick/'+who]=played;
       var nt=Object.assign({},trick);nt[who]=played;
-      if(Object.keys(nt).length===np){
+      var isLastCard=Object.keys(nt).length===np;
+      if(isLastCard){
+        // ANO-026 FIX: deux appels séparés pour éviter conflit ancêtre/enfant Firebase
+        // 1er appel: écrire la carte jouée dans trick/who
+        // 2ème appel: résoudre le pli et reset trick
         var wid=null,wv=rev?Infinity:-Infinity;
         Object.entries(nt).forEach(function(e){var v=ev(e[1],rev);if(rev?v<wv:v>wv){wv=v;wid=e[0];}});
         if(!wid)wid=who;
@@ -780,7 +783,6 @@ function act(action){
         var ntw=(players[wid].tw||0)+1;
         upd['rooms/'+ROOM+'/players/'+wid+'/tw']=ntw;
         upd['rooms/'+ROOM+'/hist/'+Object.keys(hist).length]=nt;
-        upd['rooms/'+ROOM+'/trick']={_x:true};
         var unh={};pl.forEach(function(p){unh[p.id]=p.id===who?nh:gh(p);});
         if(Object.values(unh).every(function(x){return!x||x.length===0;})){
           pl.forEach(function(p){
@@ -793,7 +795,12 @@ function act(action){
           });
           upd['rooms/'+ROOM+'/phase']='results';upd['rooms/'+ROOM+'/cp']=null;
         }else{upd['rooms/'+ROOM+'/cp']=wid;}
+        // ANO-026: 1er appel pour écrire la carte, 2ème pour reset trick
+        return DB.ref('rooms/'+ROOM+'/trick/'+who).set(played)
+          .then(function(){return DB.ref().update(upd);})
+          .then(function(){return DB.ref('rooms/'+ROOM+'/trick').set({_x:true});});
       }else{
+        upd['rooms/'+ROOM+'/trick/'+who]=played;
         var ci=pl.findIndex(function(p){return p.id===who;});
         upd['rooms/'+ROOM+'/cp']=pl[(ci+1)%np].id;
       }
