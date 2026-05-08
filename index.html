@@ -122,7 +122,10 @@ input[type=range]{width:100%;accent-color:#ffd166;}
     <div style="font-size:48px">🏠</div>
     <h2 style="font-family:'Fredoka One',cursive;font-size:28px;color:#ffd166;margin:8px 0">Salle privée</h2>
     <div class="room-code-display"><div id="lobby-code" class="room-code-value">----</div></div>
-    <div style="color:rgba(255,255,255,0.5);font-size:13px;margin-top:6px">Partagez ce code à vos amis</div>
+    <div style="display:flex;gap:8px;margin-top:10px;justify-content:center">
+      <button id="btn-copy-code" type="button" style="background:rgba(255,209,102,0.15);border:1px solid rgba(255,209,102,0.4);border-radius:10px;color:#ffd166;padding:8px 16px;cursor:pointer;font-size:13px;font-family:Nunito,sans-serif;font-weight:700;touch-action:manipulation;">📋 Copier</button>
+      <button id="btn-wa-code" type="button" style="background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.4);border-radius:10px;color:#25d366;padding:8px 16px;cursor:pointer;font-size:13px;font-family:Nunito,sans-serif;font-weight:700;touch-action:manipulation;">💬 WhatsApp</button>
+    </div>
   </div>
   <div id="lobby-players" style="width:100%;max-width:400px"></div>
   <div style="width:100%;max-width:400px;margin-top:8px">
@@ -134,9 +137,12 @@ input[type=range]{width:100%;accent-color:#ffd166;}
 <!-- GAME -->
 <div id="screen-game" class="screen game hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-    <div>
-      <div style="font-family:'Fredoka One',cursive;font-size:22px;color:#ffd166">🌶️ Pili Pili</div>
-      <div id="gplbl" style="font-size:11px;color:rgba(255,255,255,0.4)"></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button onclick="doLeave()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:rgba(255,255,255,0.6);padding:6px 12px;cursor:pointer;font-size:13px;touch-action:manipulation;" type="button">← Quitter</button>
+      <div>
+        <div style="font-family:'Fredoka One',cursive;font-size:22px;color:#ffd166">🌶️ Pili Pili</div>
+        <div id="gplbl" style="font-size:11px;color:rgba(255,255,255,0.4)"></div>
+      </div>
     </div>
     <div style="text-align:right">
       <div style="font-size:10px;color:rgba(255,255,255,0.5)">Vous</div>
@@ -407,8 +413,11 @@ function doMatchmaking(){
   DB.ref('rooms').get()
   .then(function(s){
     var rooms=s.val()||{};
+    // ANO-022+023: exclure les salles où ce joueur est déjà dedans
     var open=Object.values(rooms).find(function(r){
-      return r.phase==='lobby'&&Object.keys(r.players||{}).length<8&&!(r.code||'').startsWith('SL');
+      var players=r.players||{};
+      var alreadyIn=Object.keys(players).indexOf(PID)>=0;
+      return r.phase==='lobby'&&Object.keys(players).length<8&&!(r.code||'').startsWith('SL')&&!alreadyIn;
     });
     if(open){document.getElementById('join-code').value=open.code;doJoin();}
     else doCreate();
@@ -437,7 +446,7 @@ function subRoom(code){
     else rndrGame(data);
     if(HOST&&data.cp&&!BUSY){
       var cp=data.players[data.cp];
-      if(cp&&cp.isAI)setTimeout(function(){aiTurn(data,data.cp);},700+Math.floor(Math.random()*500));
+      if(cp&&cp.isAI){clearTimeout(window._ait);window._ait=setTimeout(function(){if(!BUSY)aiTurn(data,data.cp);},500+Math.floor(Math.random()*300));}
     }
     if(data.phase==='timer'&&data.timerEnd){
       startTmr(data.timerEnd,function(){
@@ -462,6 +471,24 @@ function rndrLobby(gs){
       (p.id===PID?'<span class="badge badge-you">Vous</span>':'')+
       '</div>';
   }).join('');
+  // ANO-021: Copier + WhatsApp
+  var btnCopy=document.getElementById('btn-copy-code');
+  var btnWA=document.getElementById('btn-wa-code');
+  if(btnCopy){
+    btnCopy.onclick=function(){
+      if(navigator.clipboard){navigator.clipboard.writeText(gs.code).then(function(){toast('✅ Code '+gs.code+' copié !');});}
+      else{var t=document.createElement('textarea');t.value=gs.code;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);toast('✅ Code copié !');}
+    };
+    btnCopy.addEventListener('touchend',function(e){e.preventDefault();btnCopy.onclick();},false);
+  }
+  if(btnWA){
+    btnWA.onclick=function(){
+      var url='https://arnaudmaffre.github.io/pilo-pilo/';
+      var msg='Rejoins-moi sur Pili Pili ! Code: *'+gs.code+'* '+url;
+      window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+    };
+    btnWA.addEventListener('touchend',function(e){e.preventDefault();btnWA.onclick();},false);
+  }
   var sw=document.getElementById('lobby-start-wrap');
   if(HOST&&players.length>=2){
     sw.innerHTML='<button class="btn btn-teal" id="btn-launch" type="button">🌶️ Lancer ('+players.length+' joueurs)</button>';
