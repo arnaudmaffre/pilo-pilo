@@ -447,11 +447,12 @@ function subRoom(code){
     if(HOST&&data.cp&&!BUSY){
       var cp=data.players[data.cp];
       if(cp&&cp.isAI){
+        console.log('[AI] Trigger for',cp.name,'phase:',data.phase,'BUSY:',BUSY);
         clearTimeout(window._ait);
-        // Force unlock BUSY — Firebase update already completed
         BUSY=false;
         window._ait=setTimeout(function(){
-          BUSY=false; // double reset
+          console.log('[AI] Executing turn for',cp.name,'BUSY:',BUSY);
+          BUSY=false;
           aiTurn(data,data.cp);
         },600+Math.floor(Math.random()*300));
       }
@@ -807,9 +808,11 @@ function act(action){
 // IA
 // ════════════════════════════════════════════════════
 function aiTurn(gs,aiId){
+  console.log('[AI] aiTurn called, BUSY:',BUSY,'phase:',gs.phase,'aiId:',aiId);
   if(BUSY)return;
-  var ph=gs.phase,m=gs.m,ai=gs.players[aiId];if(!ai)return;
+  var ph=gs.phase,m=gs.m,ai=gs.players[aiId];if(!ai){console.log('[AI] no ai player found');return;}
   var hand=gh(ai);
+  console.log('[AI] hand length:',hand?hand.length:0,'phase:',ph);
   // ANO-019 FIX: ne pas bloquer le pari si la main est vide (missions échange)
   if(ph!=='betting'&&ph!=='betblind'&&(!hand||!hand.length))return;
   var pl=spl(gs),ii=pl.findIndex(function(p){return p.id===aiId;});
@@ -821,7 +824,7 @@ function aiTurn(gs,aiId){
     est=Math.max(0,Math.min(est,hand.length));
     if(ii===pl.length-1){var s=ex.reduce(function(a,b){return a+b;},0);if(s+est===m.n)est=est>0?est-1:est+1;}
     if(m.e==='nob0'&&est===0)est=1;if(m.e==='nob1'&&est===1)est=2;
-    act({type:'bet',v:Math.max(0,Math.min(est,hand.length)),pid:aiId});
+    console.log('[AI] placing bet:',est,'for',aiId); act({type:'bet',v:Math.max(0,Math.min(est,hand.length||3)),pid:aiId});
   }else if(ph==='playing'){
     var tc=Object.values(trick);
     var sorted=hand.slice().sort(function(a,b){return ev(a,rev)-ev(b,rev);});
