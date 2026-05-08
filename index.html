@@ -698,7 +698,7 @@ function rndrPanel(gs,me,players){
       players.map(function(p,i){return'<span style="color:'+PC[i%PC.length]+'">'+esc(p.name.split(' ')[0])+': '+(p.tw||0)+'</span>';}).join(' · ')+'</div>'+
       '</div>'+
       (HOST?'<button class="btn btn-teal" id="btn-next-trick" type="button">▶ Pli suivant</button>':
-      '<div class="wmsg">En attente de l'hôte...</div>');
+      '<div class="wmsg">En attente de l\'h\u00f4te...</div>');
     if(HOST){
       var bnt=document.getElementById('btn-next-trick');
       function doNextTrick(){
