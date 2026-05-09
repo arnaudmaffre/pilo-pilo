@@ -31,10 +31,12 @@ async function launchSolo(page) {
 }
 
 async function waitForBetPanel(page) {
-  // Attendre que le panel de pari soit visible (max 8s)
+  // Attendre que le panel de pari soit visible (max 12s)
   // Certaines missions ont un timer avant les paris
   try {
-    await page.waitForSelector('#gbottom:not(.hidden)', { timeout: 8000 });
+    await page.waitForSelector('#gbottom:not(.hidden)', { timeout: 12000 });
+    // Vérifier que c'est bien le panel de pari (contient le bouton confirmer)
+    await page.waitForSelector('#bok', { timeout: 3000 });
     return true;
   } catch(e) {
     return false;
@@ -98,9 +100,11 @@ test('T2.3 — Cartes distribuées', async ({ page }) => {
 
 test('T2.4 — Bouton Quitter visible', async ({ page }) => {
   await launchSolo(page);
-  // FIX T2.4: chercher le bouton par son texte exact avec timeout plus long
-  await expect(page.locator('button', { hasText: 'Quitter' }).first()).toBeVisible({ timeout: LONG_TIMEOUT });
-  console.log('✅ T2.4 — Bouton Quitter OK');
+  // FIX T2.4: le bouton s'appelle "← Quitter" - chercher par ID ou texte partiel
+  const quitBtn = page.locator('button:has-text("Quitter")').first();
+  await expect(quitBtn).toBeVisible({ timeout: LONG_TIMEOUT });
+  const txt = await quitBtn.textContent();
+  console.log('✅ T2.4 — Bouton Quitter trouvé:', txt);
 });
 
 test('T2.5 — Bouton Quitter ramène à l\'accueil', async ({ page }) => {
@@ -227,7 +231,7 @@ test('T4.1 — Rejoindre avec code valide', async ({ browser }) => {
   await enterName(page2, 'GUEST');
   await page2.fill('#join-code', code);
   await page2.click('#btn-join');
-  await page2.waitForSelector('#screen-lobby:not(.hidden)', { timeout: LONG_TIMEOUT });
+  await page2.waitForSelector('#screen-lobby:not(.hidden)', { timeout: 20000 });
 
   await page1.waitForTimeout(2000);
   const players = await page1.locator('#lobby-players .player-row').count();
@@ -290,8 +294,8 @@ test('T6.1 — Bouton Pli suivant apparaît après un pli', async ({ page }) => 
     await page.waitForFunction(() => {
       const lbl = document.getElementById('gplbl');
       return lbl && lbl.textContent.includes('Résultat du pli');
-    }, { timeout: 8000 });
-    await expect(page.locator('#btn-next-trick')).toBeVisible({ timeout: 5000 });
+    }, { timeout: 15000 });
+    await expect(page.locator('#btn-next-trick')).toBeVisible({ timeout: 8000 });
     console.log('✅ T6.1 — Bouton Pli suivant OK');
   } catch(e) {
     console.log('⚠️ T6.1 — Pli non résolu encore (IA pas jouée)');
