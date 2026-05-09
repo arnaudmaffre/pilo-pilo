@@ -1,0 +1,50 @@
+  runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auto-increment version patch
+        run: |
+          VERSION=$(grep -oP 'Beta \K[0-9]+\.[0-9]+\.[0-9]+' index.html | head -1)
+          if [ -z "$VERSION" ]; then VERSION="1.1.2"; fi
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          echo "🔖 $VERSION → $NEW_VERSION"
+          sed -i "s/Beta $VERSION/Beta $NEW_VERSION/g" index.html
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Pili Pili Bot"
+          git add index.html
+          git diff --staged --quiet || git commit -m "🔖 Beta ${{ env.NEW_VERSION }} — auto-deploy"
+          git push || true
+
+  test:
+    name: 🧪 Smoke Tests
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: sleep 20
+      - run: npx playwright test
+        env:
+          BASE_URL: https://arnaudmaffre.github.io/pilo-pilo/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-report
+          path: playwright-report/
+          retention-days: 7
