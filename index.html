@@ -101,7 +101,7 @@ input[type=range]{width:100%;accent-color:#ffd166;}
   <div class="logo-emoji">🌶️</div>
   <div class="logo-title">PILI PILI</div>
   <div class="logo-sub">LE JEU DE PLIS ET DE PARIS</div>
-  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.2</div>
+  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.3</div>
   <div id="fb-status" class="status-box s-wait">⏳ Initialisation...</div>
   <div class="form-group">
     <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
@@ -342,7 +342,14 @@ function genCode(){return Math.random().toString(36).substr(2,4).toUpperCase();}
 function genSolo(){return'SL'+Math.random().toString(36).substr(2,2).toUpperCase();}
 function getName(){return document.getElementById('home-name').value.trim();}
 function initPh(m){if(m.e==='t3s'||m.e==='t5sblind')return'timer';if(m.e==='3of5')return'sel3of5';if(m.e==='betblind')return'betblind';return'betting';}
-function postBet(m){if(m.e==='desig')return'desig';if(m.e==='betblind')return'reveal';return'playing';}
+function postBet(m){
+  if(m.e==='desig')return'desig';
+  if(m.e==='betblind')return'reveal';
+  // ANO-029: missions d'échange — on passe par une phase d'échange
+  var exchEffects=['exch2r','exch2l','exchr','exchl','exch1r','exch1l','exch3r','exch3l','exchsim'];
+  if(exchEffects.indexOf(m.e)>=0)return'playing'; // échange géré côté serveur dans applyExchange
+  return'playing';
+}
 
 // ════════════════════════════════════════════════════
 // ATTACHER LES BOUTONS — appelé une seule fois au démarrage
@@ -629,7 +636,7 @@ function rndrGame(gs){
   var rw=document.getElementById('revw');if(rw)rw.remove();
   if(rev)gt.insertAdjacentHTML('beforeend','<div id="revw" class="rwarn">⚠️ Valeurs inversées — la plus faible l\'emporte !</div>');
   var hand=gh(me);
-  var hidH=(['t5sblind','blindmask','revblind'].indexOf(m.e)>=0&&gs.phase==='playing')||gs.phase==='timer';
+  var hidH=(['t5sblind','blindmask','revblind'].indexOf(m.e)>=0&&gs.phase==='playing')||gs.phase==='timer'||(m.e==='betblind'&&(gs.phase==='betblind'||gs.phase==='betting'));
   document.getElementById('ghlbl').textContent='Votre main ('+hand.length+'c)'+(gs.phase==='sel3of5'?' — Sélectionnez 3 cartes':'');
   var canPlay=gs.phase==='playing'&&gs.cp===PID;
   document.getElementById('ghand').innerHTML=(gs.phase==='sel3of5')
@@ -641,7 +648,10 @@ function rndrGame(gs){
 function rndrPanel(gs,me,players){
   var bp=document.getElementById('gbottom');
   var ph=gs.phase,imt=gs.cp===PID,m=gs.m;
-  if((ph==='betting'||ph==='betblind')&&imt){
+  // ANO-031 FIX: si c'est la phase de pari ET que ce joueur n'a pas encore parié
+  // ET que le cp pointe vers lui → afficher le panel
+  var myTurnToBet=(ph==='betting'||ph==='betblind')&&(gs.cp===PID||(me.bet===null||me.bet===undefined)&&Object.values(gs.players).filter(function(p){return p.bet===null||p.bet===undefined;}).length===1&&Object.values(gs.players).filter(function(p){return !p.isAI&&(p.bet===null||p.bet===undefined);}).length===1);
+  if((ph==='betting'||ph==='betblind')&&(imt||myTurnToBet)&&(me.bet===null||me.bet===undefined)){
     bp.classList.remove('hidden');
     var tot=players.reduce(function(a,p){return a+(p.bet!==null&&p.bet!==undefined?p.bet:0);},0);
     var forb=m.e==='nob0'?[0]:(m.e==='nob1'?[1]:[]);
@@ -800,6 +810,75 @@ function doNewGame(){
 }
 
 // ════════════════════════════════════════════════════
+// ANO-029: ÉCHANGE DE MAINS
+// ════════════════════════════════════════════════════
+function applyExchange(effect, pl, players){
+  var newHands={};
+  var n=pl.length;
+  // Initialiser avec les mains actuelles
+  pl.forEach(function(p){newHands[p.id]=gh(players[p.id]).slice();});
+
+  if(effect==='exchr'||effect==='exchall_right'){
+    // Main entière vers la droite
+    var tmp=newHands[pl[0].id];
+    for(var i=0;i<n-1;i++)newHands[pl[i].id]=newHands[pl[i+1].id];
+    newHands[pl[n-1].id]=tmp;
+  }else if(effect==='exchl'){
+    // Main entière vers la gauche
+    var tmp2=newHands[pl[n-1].id];
+    for(var i=n-1;i>0;i--)newHands[pl[i].id]=newHands[pl[i-1].id];
+    newHands[pl[0].id]=tmp2;
+  }else if(effect==='exch2r'){
+    // 2 cartes vers la droite
+    for(var i=0;i<n;i++){
+      var next=(i+1)%n;
+      var h=newHands[pl[i].id];
+      var give=h.splice(0,2); // prend les 2 premières
+      newHands[pl[next].id]=newHands[pl[next].id].concat(give);
+    }
+    // Recalculer car on a muté pendant l'itération - refaire proprement
+    var saved={};pl.forEach(function(p){saved[p.id]=gh(players[p.id]).slice();});
+    pl.forEach(function(p,i){
+      var next=(i+1)%n;
+      var give=saved[p.id].slice(0,2);
+      var keep=saved[p.id].slice(2);
+      newHands[p.id]=keep.concat(saved[pl[(i-1+n)%n].id].slice(0,2));
+    });
+  }else if(effect==='exch2l'){
+    // 2 cartes vers la gauche
+    var saved2={};pl.forEach(function(p){saved2[p.id]=gh(players[p.id]).slice();});
+    pl.forEach(function(p,i){
+      var prev=(i-1+n)%n;
+      var keep=saved2[p.id].slice(2);
+      newHands[p.id]=keep.concat(saved2[pl[(i+1)%n].id].slice(0,2));
+    });
+  }else if(effect==='exch1r'){
+    var saved3={};pl.forEach(function(p){saved3[p.id]=gh(players[p.id]).slice();});
+    pl.forEach(function(p,i){
+      var prev=(i-1+n)%n;
+      newHands[p.id]=saved3[p.id].slice(1).concat([saved3[pl[(i+1)%n].id][0]]);
+    });
+  }else if(effect==='exch1l'){
+    var saved4={};pl.forEach(function(p){saved4[p.id]=gh(players[p.id]).slice();});
+    pl.forEach(function(p,i){
+      newHands[p.id]=saved4[p.id].slice(1).concat([saved4[pl[(i-1+n)%n].id][0]]);
+    });
+  }else if(effect==='exch3r'){
+    var saved5={};pl.forEach(function(p){saved5[p.id]=gh(players[p.id]).slice();});
+    pl.forEach(function(p,i){
+      var prev=(i-1+n)%n;
+      newHands[p.id]=saved5[p.id].slice(3).concat(saved5[pl[(i+1)%n].id].slice(0,3));
+    });
+  }else if(effect==='exch3l'){
+    var saved6={};pl.forEach(function(p){saved6[p.id]=gh(players[p.id]).slice();});
+    pl.forEach(function(p,i){
+      newHands[p.id]=saved6[p.id].slice(3).concat(saved6[pl[(i-1+n)%n].id].slice(0,3));
+    });
+  }
+  return newHands;
+}
+
+// ════════════════════════════════════════════════════
 // ACTION PRINCIPALE
 // ════════════════════════════════════════════════════
 function act(action){
@@ -817,7 +896,20 @@ function act(action){
       var idx=pl.findIndex(function(p){return p.id===who;});
       var nb=null;for(var i=idx+1;i<pl.length;i++){if(pl[i].bet===null||pl[i].bet===undefined){nb=pl[i];break;}}
       if(nb){upd['rooms/'+ROOM+'/cp']=nb.id;}
-      else{var nph=postBet(m);upd['rooms/'+ROOM+'/phase']=nph;upd['rooms/'+ROOM+'/cp']=(nph==='playing'||nph==='desig')?pl[dealer%np].id:null;}
+      else{
+        var nph=postBet(m);
+        // ANO-029 FIX: appliquer l'échange de mains avant de jouer
+        var exchEffects=['exch2r','exch2l','exchr','exchl','exch1r','exch1l','exch3r','exch3l'];
+        if(exchEffects.indexOf(m.e)>=0){
+          // Calculer les nouvelles mains après échange
+          var newHands=applyExchange(m.e,pl,players);
+          pl.forEach(function(p){
+            if(newHands[p.id])upd['rooms/'+ROOM+'/players/'+p.id+'/hand']=newHands[p.id];
+          });
+        }
+        upd['rooms/'+ROOM+'/phase']=nph;
+        upd['rooms/'+ROOM+'/cp']=(nph==='playing'||nph==='desig')?pl[dealer%np].id:null;
+      }
     }
     if(action.type==='sel3'&&ph==='sel3of5'){
       upd['rooms/'+ROOM+'/players/'+who+'/rc']=action.cards;
