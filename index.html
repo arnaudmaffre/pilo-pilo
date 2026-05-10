@@ -100,6 +100,13 @@ body{background:#0d1b2a;font-family:'Nunito',sans-serif;color:#fff;min-height:10
 .toastbox{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#e63946;color:#fff;border-radius:12px;padding:10px 20px;z-index:9999;font-weight:700;font-size:14px;white-space:nowrap;max-width:90vw;text-align:center;}
 .rwarn{text-align:center;color:#ff6b6b;font-size:11px;margin-top:6px;}
 input[type=range]{width:100%;accent-color:#ffd166;}
+#dbg-panel{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9998;overflow-y:auto;padding:14px;display:none;flex-direction:column;}
+#dbg-panel.show{display:flex;}
+#dbg-head{display:flex;gap:8px;align-items:center;margin-bottom:10px;position:sticky;top:0;background:rgba(0,0,0,.95);padding-bottom:8px;}
+#dbg-close{background:#e63946;border:none;color:#fff;padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Fredoka One',cursive;}
+#dbg-copy-btn{background:#2a9d8f;border:none;color:#fff;padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Fredoka One',cursive;}
+#dbg-logs{font-family:monospace;font-size:10px;white-space:pre-wrap;word-break:break-all;flex:1;}
+.dl-err{color:#ff6b6b;}.dl-wrn{color:#ffd166;}.dl-act{color:#4caf50;}.dl-ai{color:#a8dadc;}.dl-inf{color:rgba(255,255,255,.6);}
 @media(min-width:540px){
   .screen{max-width:540px;margin:0 auto;}
   .bpanel{left:calc(50% - 270px);right:calc(50% - 270px);border-radius:20px 20px 0 0;}
@@ -117,7 +124,7 @@ input[type=range]{width:100%;accent-color:#ffd166;}
   <div class="logo-emoji">🌶️</div>
   <div class="logo-title">PILI PILI</div>
   <div class="logo-sub">LE JEU DE PLIS ET DE PARIS</div>
-  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.9</div>
+  <div id="ver-lbl" style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;cursor:pointer;user-select:none;">Beta 1.2.0</div>
   <div id="fb-status" class="status-box s-wait">⏳ Initialisation...</div>
   <div class="form-group">
     <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
@@ -232,15 +239,16 @@ function initFirebase() {
     }
     DB = firebase.database();
     setStatus('ok','✅ Prêt — entrez votre prénom');
+    lg('INF','Firebase OK',{pid:PID});
     // Test connexion temps réel
     DB.ref('.info/connected').on('value', function(s) {
-      if (s.val()) setStatus('ok','✅ Connecté');
-      else setStatus('wait','⏳ Reconnexion...');
+      if (s.val()){setStatus('ok','✅ Connecté');lg('INF','Firebase connected');}
+      else{setStatus('wait','⏳ Reconnexion...');lg('WRN','Firebase disconnected');}
     });
     return true;
   } catch(e) {
     setStatus('err','❌ Erreur: ' + e.message);
-    console.error('Firebase init error:', e);
+    lg('ERR','Firebase init',{msg:e.message});
     return false;
   }
 }
@@ -260,6 +268,37 @@ var SEL   = [];
 var BETV  = 0;
 var BUSY  = false;
 var PC    = ['#e63946','#457b9d','#2a9d8f','#e9c46a','#f4a261','#a8dadc','#6d6875','#b5838d'];
+
+// ════════════════════════════════════════════════════
+// LOGGER — triple-tap sur la version pour ouvrir le panneau
+// ════════════════════════════════════════════════════
+window.LOGS=[];
+function lg(tag,msg,data){
+  var ts=new Date().toISOString().substr(11,8);
+  var line='['+ts+']['+tag+'] '+msg+(data!==undefined?' '+JSON.stringify(data):'');
+  var lvl=tag==='ERR'?'err':tag==='WRN'?'wrn':tag==='ACT'?'act':tag==='AI'?'ai':'inf';
+  window.LOGS.push({ts:ts,tag:tag,msg:msg,data:data,lvl:lvl,raw:line});
+  if(window.LOGS.length>400)window.LOGS.shift();
+  if(tag==='ERR')console.error(line);else if(tag==='WRN')console.warn(line);else console.log(line);
+}
+function showDbg(){
+  var p=document.getElementById('dbg-panel');
+  var pre=document.getElementById('dbg-logs');
+  var cnt=document.getElementById('dbg-count');
+  pre.innerHTML=window.LOGS.map(function(e){
+    return'<span class="dl-'+e.lvl+'">'+e.raw+'</span>';
+  }).join('\n');
+  if(cnt)cnt.textContent=window.LOGS.length+' entrées';
+  p.classList.add('show');
+  p.scrollTop=p.scrollHeight;
+}
+window.onerror=function(msg,src,line,col,err){
+  lg('ERR','JS: '+msg,{src:(src||'').split('/').pop(),l:line,stack:err&&err.stack?err.stack.substr(0,300):null});
+};
+window.addEventListener('unhandledrejection',function(e){
+  var r=e.reason;
+  lg('ERR','Promise rejected',{reason:r?(r.message||String(r)).substr(0,200):'unknown'});
+});
 
 // ════════════════════════════════════════════════════
 // MISSIONS (41)
@@ -359,12 +398,10 @@ function genSolo(){return'SL'+Math.random().toString(36).substr(2,2).toUpperCase
 function getName(){return document.getElementById('home-name').value.trim();}
 function initPh(m){if(m.e==='t3s'||m.e==='t5sblind')return'timer';if(m.e==='3of5')return'sel3of5';if(m.e==='betblind')return'betblind';return'betting';}
 function postBet(m){
-  if(m.e==='desig')return'desig';
-  if(m.e==='betblind')return'reveal';
-  // Missions à sélection : le joueur choisit ses cartes avant l'échange
   var selEffects=['exch2r','exch2l','exch1r','exch1l','exch3r','exch3l'];
-  if(selEffects.indexOf(m.e)>=0)return'exchsel';
-  return'playing';
+  var r=m.e==='desig'?'desig':m.e==='betblind'?'reveal':selEffects.indexOf(m.e)>=0?'exchsel':'playing';
+  lg('INF','postBet: '+m.e+' → '+r);
+  return r;
 }
 
 // ════════════════════════════════════════════════════
@@ -463,19 +500,23 @@ function subRoom(code){
   LSTNR=code;
   DB.ref('rooms/'+code).on('value',function(s){
     var data=s.val();
-    if(!data){ROOM=null;scr('home');toast('Salle fermée.');return;}
+    if(!data){ROOM=null;scr('home');toast('Salle fermée.');lg('WRN','Room closed',{room:code});return;}
+    var prevPhase=GS?GS.phase:null;
     GS=data;
+    if(data.phase!==prevPhase){
+      lg('INF','Phase: '+prevPhase+' → '+data.phase,{cp:data.cp,round:data.round,mission:data.m?data.m.e:null});
+    }
     if(data.phase==='lobby')rndrLobby(data);
     else if(data.phase==='results')rndrResults(data);
     else rndrGame(data);
     if(HOST&&data.cp&&!BUSY){
       var cp=data.players[data.cp];
       if(cp&&cp.isAI){
-        console.log('[AI] Trigger for',cp.name,'phase:',data.phase,'BUSY:',BUSY);
+        lg('AI','Trigger for '+cp.name,{phase:data.phase});
         clearTimeout(window._ait);
         BUSY=false;
         window._ait=setTimeout(function(){
-          console.log('[AI] Executing turn for',cp.name,'BUSY:',BUSY);
+          lg('AI','Executing turn for '+cp.name,{busy:BUSY});
           BUSY=false;
           aiTurn(data,data.cp);
         },600+Math.floor(Math.random()*300));
@@ -827,12 +868,13 @@ function updB(){var d=document.getElementById('bdisp'),s=document.getElementById
 function doBet(){
   if(!GS)return;
   var bet=BETV,gs=GS,pl=spl(gs),m=gs.m;
-  if(m.e==='nob0'&&bet===0){toast('⛔ Interdit de parier 0!');return;}
-  if(m.e==='nob1'&&bet===1){toast('⛔ Interdit de parier 1!');return;}
-  if(m.e==='nocopy'){var mi=pl.findIndex(function(p){return p.id===PID;});if(mi>0&&pl[mi-1].bet===bet){toast('⛔ Interdit de copier!');return;}}
+  if(m.e==='nob0'&&bet===0){toast('⛔ Interdit de parier 0!');lg('WRN','Bet refused: nob0');return;}
+  if(m.e==='nob1'&&bet===1){toast('⛔ Interdit de parier 1!');lg('WRN','Bet refused: nob1');return;}
+  if(m.e==='nocopy'){var mi=pl.findIndex(function(p){return p.id===PID;});if(mi>0&&pl[mi-1].bet===bet){toast('⛔ Interdit de copier!');lg('WRN','Bet refused: nocopy',{bet:bet});return;}}
   var oth=pl.filter(function(p){return p.id!==PID&&p.bet!==null&&p.bet!==undefined;});
   var so=oth.reduce(function(a,p){return a+p.bet;},0);
-  if(pl.filter(function(p){return p.bet===null||p.bet===undefined;}).length===1&&so+bet===m.n){toast('⛔ Total interdit: '+m.n);return;}
+  if(pl.filter(function(p){return p.bet===null||p.bet===undefined;}).length===1&&so+bet===m.n){toast('⛔ Total interdit: '+m.n);lg('WRN','Bet refused: total=n',{so:so,bet:bet,n:m.n});return;}
+  lg('ACT','doBet',{bet:bet,mission:m.e});
   act({type:'bet',v:bet});
 }
 
@@ -880,6 +922,7 @@ function rndrResults(gs){
 function doNextRound(){
   if(!GS||!ROOM)return;
   if(Object.values(GS.players||{}).some(function(p){return(p.pilis||0)>=6;})){toast('Partie terminée!');return;}
+  lg('INF','doNextRound',{round:(GS.round||1)+1});
   var players=spl(GS),nd=((GS.dealer||0)+1)%players.length;
   var m=MISS[Math.floor(Math.random()*MISS.length)];
   var deck=rnd(mkDeck()),hands=[];
@@ -993,9 +1036,10 @@ function applyExchange(effect, pl, players){
 function act(action){
   if(!ROOM||!DB){toast('⚠️ Non connecté');return;}
   if(BUSY)return;BUSY=true;
+  lg('ACT',action.type,{pid:action.pid||PID,v:action.v,id:action.id,n:action.cards?action.cards.length:undefined});
   DB.ref('rooms/'+ROOM).get()
   .then(function(s){
-    var gs=s.val();if(!gs){BUSY=false;return;}
+    var gs=s.val();if(!gs){BUSY=false;lg('WRN','act: room not found');return;}
     var upd={},ph=gs.phase,players=gs.players,m=gs.m,dealer=gs.dealer||0;
     var trick=clnT(gs.trick||{}),hist=clnT(gs.hist||{});
     var pl=spl(gs),np=pl.length,rev=m.e==='rev'||m.e==='revblind';
@@ -1155,18 +1199,18 @@ function act(action){
       }
     }
   })
-  .catch(function(e){toast('Erreur: '+e.message);console.error(e);BUSY=false;});
+  .catch(function(e){toast('Erreur: '+e.message);lg('ERR','act() Firebase',{msg:e.message,code:e.code});BUSY=false;});
 }
 
 // ════════════════════════════════════════════════════
 // IA
 // ════════════════════════════════════════════════════
 function aiTurn(gs,aiId){
-  console.log('[AI] aiTurn called, BUSY:',BUSY,'phase:',gs.phase,'aiId:',aiId);
+  lg('AI','aiTurn',{busy:BUSY,phase:gs.phase,ai:aiId});
   if(BUSY)return;
-  var ph=gs.phase,m=gs.m,ai=gs.players[aiId];if(!ai){console.log('[AI] no ai player found');return;}
+  var ph=gs.phase,m=gs.m,ai=gs.players[aiId];if(!ai){lg('WRN','aiTurn: no player',{aiId:aiId});return;}
   var hand=gh(ai);
-  console.log('[AI] hand length:',hand?hand.length:0,'phase:',ph);
+  lg('AI','hand',{len:hand?hand.length:0,phase:ph});
   // ANO-019 FIX: ne pas bloquer le pari si la main est vide (missions échange)
   if(ph!=='betting'&&ph!=='betblind'&&(!hand||!hand.length))return;
   var pl=spl(gs),ii=pl.findIndex(function(p){return p.id===aiId;});
@@ -1179,7 +1223,7 @@ function aiTurn(gs,aiId){
     est=Math.max(0,Math.min(est,hand.length));
     if(ii===pl.length-1){var s=ex.reduce(function(a,b){return a+b;},0);if(s+est===m.n)est=est>0?est-1:est+1;}
     if(m.e==='nob0'&&est===0)est=1;if(m.e==='nob1'&&est===1)est=2;
-    console.log('[AI] placing bet:',est,'for',aiId); act({type:'bet',v:Math.max(0,Math.min(est,hand.length||3)),pid:aiId});
+    lg('AI','bet',{est:est,ai:aiId,handLen:hand.length}); act({type:'bet',v:Math.max(0,Math.min(est,hand.length||3)),pid:aiId});
   }else if(ph==='playing'){
     var tc=Object.values(trick);
     var sorted=hand.slice().sort(function(a,b){return ev(a,rev)-ev(b,rev);});
@@ -1214,10 +1258,30 @@ function aiTurn(gs,aiId){
 document.addEventListener('DOMContentLoaded', function() {
   attachAll();
   initFirebase();
+  document.getElementById('dbg-close').addEventListener('click',function(){document.getElementById('dbg-panel').classList.remove('show');});
+  document.getElementById('dbg-copy-btn').addEventListener('click',function(){
+    var txt=window.LOGS.map(function(e){return e.raw;}).join('\n');
+    navigator.clipboard&&navigator.clipboard.writeText(txt).then(function(){toast('📋 Logs copiés!');});
+  });
+  var vtap=0,vtimer;
+  document.getElementById('ver-lbl').addEventListener('click',function(){
+    vtap++;clearTimeout(vtimer);
+    vtimer=setTimeout(function(){vtap=0;},600);
+    if(vtap>=3){vtap=0;showDbg();}
+  });
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/pilo-pilo/sw.js').catch(function(){});
   }
 });
 </script>
+<!-- Debug panel — triple-tap sur la version pour l'ouvrir -->
+<div id="dbg-panel">
+  <div id="dbg-head">
+    <button id="dbg-close">✕ Fermer</button>
+    <button id="dbg-copy-btn">📋 Copier</button>
+    <span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:auto;" id="dbg-count"></span>
+  </div>
+  <pre id="dbg-logs"></pre>
+</div>
 </body>
 </html>

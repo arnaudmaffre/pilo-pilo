@@ -1,5 +1,12 @@
 # 🌶️ Pili Pili — Changelog
 
+## Beta 1.2.0 — 2026-05-10
+### 🟡 Évolutions
+- LOG-001 — Logger structuré window.LOGS (400 entrées, tags ERR/WRN/ACT/AI/INF)
+- LOG-002 — Panneau debug : triple-tap sur le numéro de version → logs + bouton Copier
+- LOG-003 — Capture window.onerror + unhandledrejection (erreurs JS non gérées)
+- LOG-004 — Instrumentation : phases, act(), aiTurn(), doBet(), postBet(), doNextRound()
+
 ## Beta 1.1.9 — 2026-05-10
 ### 🟡 Évolutions
 - UX-UI-001 — Ombres multi-couches sur les cartes (profondeur visuelle)
