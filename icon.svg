@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0d1b2a"/>
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff6b6b"/>
+      <stop offset="100%" stop-color="#e63946"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4caf50"/>
+      <stop offset="100%" stop-color="#2e7d32"/>
+    </linearGradient>
+  </defs>
+  <!-- Stem -->
+  <path d="M256 90 Q280 70 300 50 Q290 80 270 110" fill="url(#g2)" stroke="#2e7d32" stroke-width="4"/>
+  <!-- Chili body -->
+  <path d="M256 110 C220 110 190 130 180 165 C170 200 175 240 185 270 C195 305 220 340 240 370 C248 385 264 385 272 370 C292 340 317 305 327 270 C337 240 342 200 332 165 C322 130 292 110 256 110Z" fill="url(#g1)"/>
+  <!-- Highlight -->
+  <path d="M225 130 C215 145 210 165 212 185 C218 175 225 158 228 140Z" fill="rgba(255,255,255,0.25)"/>
+  <!-- Gold stars for pilis -->
+  <text x="178" y="460" font-size="42" fill="#ffd166">★★★</text>
+</svg>

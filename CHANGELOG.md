@@ -1,5 +1,15 @@
 # 🌶️ Pili Pili — Changelog
 
+## Beta 1.1.9 — 2026-05-10
+### 🟡 Évolutions
+- UX-UI-001 — Ombres multi-couches sur les cartes (profondeur visuelle)
+- UX-UI-002 — Glow doré sur les cartes sélectionnées
+- UX-UI-003 — Glassmorphism sur le panneau de pari (backdrop-filter blur)
+- UX-UI-004 — Feedback tactile sur boutons et cartes (scale au clic)
+- RWD — Interface responsive : centrage à 540px, bordures tablette/desktop
+- PWA — Progressive Web App : manifest.json + service worker + icône SVG
+- Padding safe-area-inset-bottom sur .bpanel (encoche iPhone)
+
 ## Beta 1.1.8 — 2026-05-10
 ### 🟡 Évolutions
 - EVO-010 — Cartes joueur triées par ordre croissant (Joker en dernier)
