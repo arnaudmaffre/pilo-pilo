@@ -442,7 +442,7 @@ function gh(p){if(!p||!p.hand)return[];if(p.hand._x)return[];return Array.isArra
 function clnT(o){if(!o)return{};var r={};Object.keys(o).forEach(function(k){if(k!=='_x')r[k]=o[k];});return r;}
 function exchSelN(e){if(e==='exch1r'||e==='exch1l')return 1;if(e==='exch3r'||e==='exch3l')return 3;return 2;}
 function genCode(){return Math.random().toString(36).substr(2,4).toUpperCase();}
-function genSolo(){return'SL'+Math.random().toString(36).substr(2,2).toUpperCase();}
+function genSolo(){return'SL'+Math.random().toString(36).substr(2,4).toUpperCase();}
 function getName(){return document.getElementById('home-name').value.trim();}
 function initPh(m){if(m.e==='t3s'||m.e==='t5sblind')return'timer';if(m.e==='3of5')return'sel3of5';if(m.e==='betblind')return'betblind';return'betting';}
 function postBet(m){
@@ -477,24 +477,39 @@ function attachAll() {
 function doSolo(){
   if(!DB){toast('⚠️ Firebase pas prêt — patientez 2 secondes et réessayez');return;}
   var name=getName();if(!name){toast('✏️ Entrez votre prénom !');return;}
-  var code=genSolo();ROOM=code;HOST=true;
   setStatus('wait','Lancement...');
-  startGame(code,PID,[
-    {id:PID,name:name,isAI:false,pilis:0,o:0},
-    {id:'ai1',name:'Robo-Chili 🤖',isAI:true,pilis:0,o:1},
-    {id:'ai2',name:'Capsaïco 🤖',isAI:true,pilis:0,o:2}
-  ]).then(function(){subRoom(code);})
-  .catch(function(e){toast('Erreur: '+e.message);setStatus('err','❌ '+e.message);console.error(e);});
+  _soloRetry(name,0);
+}
+function _soloRetry(name,n){
+  if(n>=5){setStatus('err','❌ Impossible de démarrer, réessayez');return;}
+  var code=genSolo();
+  DB.ref('rooms/'+code).get().then(function(s){
+    if(s.exists()){lg('WRN','ANO-035: Solo code collision',{code:code,attempt:n});_soloRetry(name,n+1);return;}
+    ROOM=code;HOST=true;
+    return startGame(code,PID,[
+      {id:PID,name:name,isAI:false,pilis:0,o:0},
+      {id:'ai1',name:'Robo-Chili 🤖',isAI:true,pilis:0,o:1},
+      {id:'ai2',name:'Capsaïco 🤖',isAI:true,pilis:0,o:2}
+    ]).then(function(){subRoom(code);})
+    .catch(function(e){toast('Erreur: '+e.message);setStatus('err','❌ '+e.message);console.error(e);});
+  }).catch(function(e){toast('Erreur: '+e.message);setStatus('err','❌ '+e.message);});
 }
 
 function doCreate(){
   if(!DB){toast('⚠️ Firebase pas prêt');return;}
   var name=getName();if(!name){toast('✏️ Entrez votre prénom !');return;}
+  _createRetry(name,0);
+}
+function _createRetry(name,n){
+  if(n>=5){toast('❌ Impossible de créer une salle, réessayez');return;}
   var code=genCode();
-  DB.ref('rooms/'+code).set({code:code,phase:'lobby',hostId:PID,
-    players:{[PID]:{id:PID,name:name,isAI:false,pilis:0,o:0}},ts:Date.now()})
-  .then(function(){ROOM=code;HOST=true;subRoom(code);scr('lobby');})
-  .catch(function(e){toast('Erreur: '+e.message);});
+  DB.ref('rooms/'+code).get().then(function(s){
+    if(s.exists()){lg('WRN','ANO-035: Room code collision',{code:code,attempt:n});_createRetry(name,n+1);return;}
+    return DB.ref('rooms/'+code).set({code:code,phase:'lobby',hostId:PID,
+      players:{[PID]:{id:PID,name:name,isAI:false,pilis:0,o:0}},ts:Date.now()})
+    .then(function(){ROOM=code;HOST=true;subRoom(code);scr('lobby');})
+    .catch(function(e){toast('Erreur: '+e.message);});
+  }).catch(function(e){toast('Erreur: '+e.message);});
 }
 
 function doJoin(){

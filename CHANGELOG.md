@@ -1,5 +1,10 @@
 # 🌶️ Pili Pili — Changelog
 
+## Beta 1.2.6 — 2026-05-11
+### ✅ Anomalies corrigées
+- ANO-035 — Collisions de codes de salle : `doCreate()` et `doSolo()` écrasaient silencieusement une salle existante si le code généré était déjà pris. Ajout d'une vérification Firebase avant le `.set()`, avec retry automatique (max 5 tentatives) et log WRN en cas de collision détectée.
+- ANO-036 — Entropie insuffisante dans `genSolo()` : seulement 36² = 1 296 codes possibles (`SL` + 2 chars), causant des collisions fréquentes avec les anciennes salles persistantes. Passage à 4 chars aléatoires → 1 679 616 possibilités.
+
 ## Beta 1.2.5 — 2026-05-10
 ### 🟡 Évolutions
 - EVO-011 — Chat textuel multijoueur : panneau 💬 rétractable, badge non-lus, Firebase rooms/[ROOM]/chat
