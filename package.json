@@ -5,7 +5,7 @@
   "scripts": {
     "test": "playwright test tests/smoke.spec.js",
     "test:smoke": "playwright test tests/smoke.spec.js",
-    "test:functional": "playwright test tests/functional.spec.js --timeout=120000",
+    "test:functional": "playwright test --config=playwright.functional.config.js",
     "test:all": "playwright test",
     "test:report": "playwright show-report",
     "test:mission": "playwright test tests/functional.spec.js -g"
