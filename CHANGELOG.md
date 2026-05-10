@@ -1,5 +1,9 @@
 # 🌶️ Pili Pili — Changelog
 
+## Beta 1.2.4 — 2026-05-10
+### ✅ Anomalies corrigées
+- ANO-034 — Valeurs inversées : gagnant du pli incorrectement calculé (min ev → max ev, ev() gère déjà l'inversion)
+
 ## Beta 1.2.3 — 2026-05-10
 ### ✅ Anomalies corrigées
 - ANO-033 — ReferenceError pl.length dans rndrGame (→ players.length) : crash toutes les parties
