@@ -1,5 +1,12 @@
 # 🌶️ Pili Pili — Changelog
 
+## Beta 1.2.2 — 2026-05-10
+### ✅ Anomalies corrigées
+- ANO-031 — faceup : zone cartes adversaires visible aussi pendant trick_review (entre les plis)
+- ANO-032 — t5sblind : cartes jouées dans le pli maintenant visibles de tous (main reste cachée)
+### 🟡 Évolutions
+- EVO-011 — Nouvelle mission "Dernier à décider" (3c et 4c) : tous jouent face cachée, cartes révélées au dernier joueur
+
 ## Beta 1.2.1 — 2026-05-10
 ### 🟡 Évolutions
 - LOG-005 — Persistance localStorage (300 entrées, restaurée à l'ouverture de l'onglet)

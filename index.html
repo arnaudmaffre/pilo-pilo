@@ -124,7 +124,7 @@ input[type=range]{width:100%;accent-color:#ffd166;}
   <div class="logo-emoji">🌶️</div>
   <div class="logo-title">PILI PILI</div>
   <div class="logo-sub">LE JEU DE PLIS ET DE PARIS</div>
-  <div id="ver-lbl" style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;cursor:pointer;user-select:none;">Beta 1.2.1</div>
+  <div id="ver-lbl" style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;cursor:pointer;user-select:none;">Beta 1.2.2</div>
   <div id="fb-status" class="status-box s-wait">⏳ Initialisation...</div>
   <div class="form-group">
     <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
@@ -370,7 +370,9 @@ var MISS = [
   {id:38,n:5,x:0,t:'Pari interdit : 1 (5c)',d:'Interdit de parier 1 cette manche.',e:'nob1'},
   {id:39,n:5,x:0,t:'Pioche bonus (5c)',d:"Après les paris, chaque joueur pioche 1 carte supplémentaire.",e:'draw1'},
   {id:40,n:5,x:0,t:'Main entière →',d:"Après les paris, donnez toute votre main au joueur de droite.",e:'exchr'},
-  {id:41,n:2,x:1,t:'Masque Aveugle v2',d:"2 cartes face cachée. Vous voyez celles des autres, pas les vôtres. Plis à l'aveugle.",e:'blindmask'}
+  {id:41,n:2,x:1,t:'Masque Aveugle v2',d:"2 cartes face cachée. Vous voyez celles des autres, pas les vôtres. Plis à l'aveugle.",e:'blindmask'},
+  {id:42,n:3,x:1,t:'Dernier à décider',d:"Tous jouent face cachée. Quand il ne reste qu'un joueur, toutes les cartes se retournent. Le dernier joueur voit tout et choisit.",e:'lastlook'},
+  {id:43,n:4,x:1,t:'Dernier à décider (4c)',d:"Tous jouent face cachée. Quand il ne reste qu'un joueur, toutes les cartes se retournent. Le dernier joueur voit tout et choisit.",e:'lastlook'}
 ];
 
 // ════════════════════════════════════════════════════
@@ -724,12 +726,20 @@ function rndrGame(gs){
   }
   gt.style.display='';
   var trick=clnT(gs.trick||{}),tE=Object.entries(trick);
-  var blind=['revblind','t5sblind','blindmask'].indexOf(m.e)>=0;
+  var blind=['revblind','blindmask'].indexOf(m.e)>=0; // t5sblind: cartes jouées visibles dans le pli
+  // lastlook: cartes cachées jusqu'au dernier joueur, révélées quand il ne reste qu'un joueur à jouer
+  var np=pl.length;
+  var lastlookHide=m.e==='lastlook'&&tE.length<np-1;
+  var lastlookReveal=m.e==='lastlook'&&tE.length===np-1&&gs.cp===PID;
   document.getElementById('gtcards').innerHTML=tE.length===0
     ?'<span style="color:rgba(255,255,255,0.3);font-size:13px">En attente...</span>'
     :tE.map(function(e){var pid=e[0],c=e[1],p=gs.players[pid];
-      return'<div class="tcw">'+mkCard(c,{sm:true,hid:blind&&pid!==PID})+'<div class="tcpn">'+esc(p?p.name:'?')+'</div></div>';
+      return'<div class="tcw">'+mkCard(c,{sm:true,hid:(blind&&pid!==PID)||lastlookHide})+'<div class="tcpn">'+esc(p?p.name:'?')+'</div></div>';
     }).join('');
+  if(lastlookReveal){
+    var existRev=document.getElementById('lastlook-reveal-msg');
+    if(!existRev){document.getElementById('gtrick').insertAdjacentHTML('afterbegin','<div id="lastlook-reveal-msg" style="font-size:12px;color:#ffd166;margin-bottom:8px;text-align:center">👁 Toutes les cartes révélées — à toi de jouer !</div>');}
+  }else{var lrm=document.getElementById('lastlook-reveal-msg');if(lrm)lrm.remove();}
   var rw=document.getElementById('revw');if(rw)rw.remove();
   if(rev)gt.insertAdjacentHTML('beforeend','<div id="revw" class="rwarn">⚠️ Valeurs inversées — la plus faible l\'emporte !</div>');
   var hand=gh(me).slice().sort(function(a,b){return(a.j?999:a.v)-(b.j?999:b.v);});
@@ -740,7 +750,7 @@ function rndrGame(gs){
   var canPlay=gs.phase==='playing'&&gs.cp===PID;
   // BUG-003 FIX: faceup — afficher cartes de tous les joueurs
   var faceupArea=document.getElementById('faceup-area');
-  if(m.e==='faceup'&&gs.phase==='playing'){
+  if(m.e==='faceup'&&(gs.phase==='playing'||gs.phase==='trick_review')){
     if(!faceupArea){
       var fa=document.createElement('div');
       fa.id='faceup-area';
