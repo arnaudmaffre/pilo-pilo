@@ -1,5 +1,9 @@
 # 🌶️ Pili Pili — Changelog
 
+## Beta 1.1.8 — 2026-05-10
+### 🟡 Évolutions
+- EVO-010 — Cartes joueur triées par ordre croissant (Joker en dernier)
+
 ## Beta 1.1.7 — 2026-05-10
 ### ✅ Anomalies corrigées
 - ANO-030 — Paris manche 2+ : rotation circulaire du cp (boucle linéaire → modulo)

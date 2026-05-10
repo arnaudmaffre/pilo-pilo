@@ -101,7 +101,7 @@ input[type=range]{width:100%;accent-color:#ffd166;}
   <div class="logo-emoji">🌶️</div>
   <div class="logo-title">PILI PILI</div>
   <div class="logo-sub">LE JEU DE PLIS ET DE PARIS</div>
-  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.7</div>
+  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.8</div>
   <div id="fb-status" class="status-box s-wait">⏳ Initialisation...</div>
   <div class="form-group">
     <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
@@ -651,7 +651,7 @@ function rndrGame(gs){
     }).join('');
   var rw=document.getElementById('revw');if(rw)rw.remove();
   if(rev)gt.insertAdjacentHTML('beforeend','<div id="revw" class="rwarn">⚠️ Valeurs inversées — la plus faible l\'emporte !</div>');
-  var hand=gh(me);
+  var hand=gh(me).slice().sort(function(a,b){return(a.j?999:a.v)-(b.j?999:b.v);});
   // BUG-001 FIX: forehead = mes cartes cachées pendant paris ET jeu
   var hidH=((['t5sblind','blindmask','forehead'].indexOf(m.e)>=0&&(gs.phase==='playing'||gs.phase==='betting'||gs.phase==='betblind'))||(m.e==='revblind'&&gs.phase==='playing'))||(!window.TMRREV&&gs.phase==='timer')||(m.e==='betblind'&&(gs.phase==='betblind'||gs.phase==='betting'));
   var exchSelLbl=gs.phase==='exchsel'&&!me.exchCards?' — Choisissez '+exchSelN(m.e)+' carte'+(exchSelN(m.e)>1?'s':'')+'':'';
