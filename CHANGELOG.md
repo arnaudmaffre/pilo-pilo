@@ -1,5 +1,24 @@
 # 🌶️ Pili Pili — Changelog
 
+## Beta 1.1.6 — 2026-05-10
+### ✅ Anomalies corrigées
+- ANO-025 — revblind : cartes visibles pendant les paris (retrait de revblind de la condition hidH betting)
+
+### 🟡 Évolutions
+- EVO-002 — Timer : bouton Révéler → cartes affichées pendant le compte à rebours (flag TMRREV)
+
+## Beta 1.1.5 — 2026-05-09
+### ✅ Anomalies corrigées
+- Fix audit fonctionnel : forehead, draw1, faceup, exchsim, exchwin
+
+## Beta 1.1.4 — 2026-05-09
+### ✅ Anomalies corrigées
+- Bouton Quitter sans flèche + id="btn-quit-game"
+
+## Beta 1.1.3 — 2026-05-08
+### ✅ Anomalies corrigées
+- Fix échange mains, betblind cartes cachées, pari manche 3+
+
 ## Beta 1.1.2 — 2025-05-08
 ### ✅ Anomalies corrigées
 - ANO-026 — Conflit Firebase trick ancêtre/enfant

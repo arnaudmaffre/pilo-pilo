@@ -101,7 +101,7 @@ input[type=range]{width:100%;accent-color:#ffd166;}
   <div class="logo-emoji">🌶️</div>
   <div class="logo-title">PILI PILI</div>
   <div class="logo-sub">LE JEU DE PLIS ET DE PARIS</div>
-  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.5</div>
+  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.6</div>
   <div id="fb-status" class="status-box s-wait">⏳ Initialisation...</div>
   <div class="form-group">
     <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
@@ -239,6 +239,7 @@ var GS    = null;
 var LSTNR = null;
 var JKPND = null;
 var TMRIV = null;
+var TMRREV= false; // true pendant la fenêtre de révélation timer (EVO-002)
 var SEL   = [];
 var BETV  = 0;
 var BUSY  = false;
@@ -477,8 +478,10 @@ function subRoom(code){
       if(brc){
         function doRevealTimer(){
           brc.disabled=true;
-          if(GS)rndrGame(GS); // show cards
+          window.TMRREV=true;
+          if(GS)rndrGame(GS);
           startTmr(Date.now()+(data.m.e==='t3s'?3000:5000),function(){
+            window.TMRREV=false;
             if(HOST){var pl=spl(data);DB.ref('rooms/'+code).update({phase:'betting',cp:pl[data.dealer%pl.length].id});}
           });
         }
@@ -637,7 +640,7 @@ function rndrGame(gs){
   if(rev)gt.insertAdjacentHTML('beforeend','<div id="revw" class="rwarn">⚠️ Valeurs inversées — la plus faible l\'emporte !</div>');
   var hand=gh(me);
   // BUG-001 FIX: forehead = mes cartes cachées pendant paris ET jeu
-  var hidH=(['t5sblind','blindmask','revblind','forehead'].indexOf(m.e)>=0&&(gs.phase==='playing'||gs.phase==='betting'||gs.phase==='betblind'))||gs.phase==='timer'||(m.e==='betblind'&&(gs.phase==='betblind'||gs.phase==='betting'));
+  var hidH=((['t5sblind','blindmask','forehead'].indexOf(m.e)>=0&&(gs.phase==='playing'||gs.phase==='betting'||gs.phase==='betblind'))||(m.e==='revblind'&&gs.phase==='playing'))||(!window.TMRREV&&gs.phase==='timer')||(m.e==='betblind'&&(gs.phase==='betblind'||gs.phase==='betting'));
   document.getElementById('ghlbl').textContent='Votre main ('+hand.length+'c)'+(gs.phase==='sel3of5'?' — Sélectionnez 3 cartes':'');
   var canPlay=gs.phase==='playing'&&gs.cp===PID;
   // BUG-003 FIX: faceup — afficher cartes de tous les joueurs
