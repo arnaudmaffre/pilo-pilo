@@ -1,5 +1,9 @@
 # 🌶️ Pili Pili — Changelog
 
+## Beta 1.2.5 — 2026-05-10
+### 🟡 Évolutions
+- EVO-011 — Chat textuel multijoueur : panneau 💬 rétractable, badge non-lus, Firebase rooms/[ROOM]/chat
+
 ## Beta 1.2.4 — 2026-05-10
 ### ✅ Anomalies corrigées
 - ANO-034 — Valeurs inversées : gagnant du pli incorrectement calculé (min ev → max ev, ev() gère déjà l'inversion)

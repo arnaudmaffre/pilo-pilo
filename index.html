@@ -100,6 +100,22 @@ body{background:#0d1b2a;font-family:'Nunito',sans-serif;color:#fff;min-height:10
 .toastbox{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#e63946;color:#fff;border-radius:12px;padding:10px 20px;z-index:9999;font-weight:700;font-size:14px;white-space:nowrap;max-width:90vw;text-align:center;}
 .rwarn{text-align:center;color:#ff6b6b;font-size:11px;margin-top:6px;}
 input[type=range]{width:100%;accent-color:#ffd166;}
+.chat-fab{position:fixed;bottom:90px;right:16px;width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#457b9d,#2d5a7a);border:none;font-size:22px;color:#fff;cursor:pointer;z-index:200;box-shadow:0 4px 12px rgba(0,0,0,.4);touch-action:manipulation;}
+.chat-badge{position:absolute;top:-4px;right:-4px;background:#e63946;color:#fff;font-size:9px;font-weight:900;border-radius:8px;padding:1px 4px;min-width:14px;text-align:center;}
+.chat-panel{position:fixed;bottom:0;left:0;right:0;height:60vh;max-height:420px;background:rgba(8,18,32,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.12);border-radius:20px 20px 0 0;z-index:199;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s ease;}
+.chat-panel.open{transform:translateY(0);}
+.chat-head{display:flex;align-items:center;padding:12px 16px 8px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.chat-head span{font-family:'Fredoka One',cursive;font-size:16px;flex:1;}
+.chat-close-btn{background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;padding:4px;}
+.chat-msgs{flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:6px;}
+.chat-msg{font-size:12px;line-height:1.4;}
+.chat-msg-name{font-weight:800;margin-right:4px;}
+.chat-msg-time{font-size:10px;color:rgba(255,255,255,.3);margin-right:6px;}
+.chat-msg-me .chat-msg-name{color:#ffd166;}
+.chat-input-row{display:flex;gap:8px;padding:10px 14px 20px;border-top:1px solid rgba(255,255,255,0.08);}
+.chat-input{flex:1;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:12px;padding:10px 14px;color:#fff;font-size:14px;font-family:'Nunito',sans-serif;outline:none;-webkit-appearance:none;}
+.chat-send-btn{background:linear-gradient(135deg,#457b9d,#2d5a7a);border:none;border-radius:12px;padding:10px 16px;color:#fff;font-size:18px;cursor:pointer;touch-action:manipulation;}
+@media(min-width:540px){.chat-fab{right:calc(50% - 254px);}.chat-panel{left:calc(50% - 270px);right:calc(50% - 270px);border-radius:20px 20px 0 0;}}
 #dbg-panel{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:9998;overflow-y:auto;padding:14px;display:none;flex-direction:column;}
 #dbg-panel.show{display:flex;}
 #dbg-head{display:flex;gap:8px;align-items:center;margin-bottom:10px;position:sticky;top:0;background:rgba(0,0,0,.95);padding-bottom:8px;}
@@ -124,7 +140,7 @@ input[type=range]{width:100%;accent-color:#ffd166;}
   <div class="logo-emoji">🌶️</div>
   <div class="logo-title">PILI PILI</div>
   <div class="logo-sub">LE JEU DE PLIS ET DE PARIS</div>
-  <div id="ver-lbl" style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;cursor:pointer;user-select:none;">Beta 1.2.4</div>
+  <div id="ver-lbl" style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;cursor:pointer;user-select:none;">Beta 1.2.5</div>
   <div id="fb-status" class="status-box s-wait">⏳ Initialisation...</div>
   <div class="form-group">
     <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
@@ -268,6 +284,7 @@ var SEL   = [];
 var BETV  = 0;
 var BUSY  = false;
 var PC    = ['#e63946','#457b9d','#2a9d8f','#e9c46a','#f4a261','#a8dadc','#6d6875','#b5838d'];
+var CHAT_LSTNR=null,CHAT_UNREAD=0,CHAT_OPEN=false;
 
 // ════════════════════════════════════════════════════
 // LOGGER — triple-tap sur la version pour ouvrir le panneau
@@ -389,6 +406,8 @@ function scr(name){
   ['home','lobby','game','results'].forEach(function(s){
     document.getElementById('screen-'+s).classList.toggle('hidden',s!==name);
   });
+  var fab=document.getElementById('chat-fab');
+  if(fab)fab.classList.toggle('hidden',name==='home'||!ROOM);
 }
 function ptk(n,max){max=max||6;var h='';for(var i=0;i<max;i++)h+='<div class="pd '+(i<n?'on':'off')+'"></div>';return h;}
 function cardCol(n){
@@ -409,7 +428,8 @@ function mkCard(c,o){
   var col=cardCol(c.j?0:c.v);
   var bg=hid?'linear-gradient(135deg,#1a2a4a,#0d1b2a)':col.bg;
   var br=sel?'#ffd166':(hid?'rgba(255,255,255,0.1)':col.br);
-  var ct=hid?'<span style="font-size:14px;opacity:0.2">🌶️</span>':c.j?'<span style="font-size:'+fs+'px">🔥</span>':'<span class="cv" style="font-size:'+fs+'px">'+c.v+'</span>';
+  var jokerVal=c.j&&c.v&&c.v!==56?'<div class="cv" style="font-size:'+(sm?9:13)+'px;margin-top:1px">'+c.v+'</div>':'';
+  var ct=hid?'<span style="font-size:14px;opacity:0.2">🌶️</span>':c.j?'<div style="text-align:center"><span style="font-size:'+fs+'px">🔥</span>'+jokerVal+'</div>':'<span class="cv" style="font-size:'+fs+'px">'+c.v+'</span>';
   var bd=sel?'<div class="csb">✓</div>':'';
   var ca=oc?'onclick="'+oc+'"':'';
   return'<div class="card'+(sel?' sel':'')+'" style="width:'+w+'px;height:'+h+'px;background:'+bg+';border:2px solid '+br+';" '+ca+'>'+ct+bd+'</div>';
@@ -517,7 +537,11 @@ function doMatchmaking(){
 function doLeave(){
   if(ROOM&&DB)DB.ref('rooms/'+ROOM+'/players/'+PID).remove().catch(function(){});
   if(LSTNR&&DB){DB.ref('rooms/'+LSTNR).off('value');LSTNR=null;}
-  ROOM=null;HOST=false;GS=null;SEL=[];scr('home');
+  if(CHAT_LSTNR&&DB){DB.ref('rooms/'+CHAT_LSTNR+'/chat').off('value');CHAT_LSTNR=null;}
+  ROOM=null;HOST=false;GS=null;SEL=[];CHAT_UNREAD=0;CHAT_OPEN=false;
+  closeChat();
+  var fab=document.getElementById('chat-fab');if(fab)fab.classList.add('hidden');
+  scr('home');
 }
 
 // ════════════════════════════════════════════════════
@@ -526,6 +550,7 @@ function doLeave(){
 function subRoom(code){
   if(LSTNR&&DB){DB.ref('rooms/'+LSTNR).off('value');LSTNR=null;}
   LSTNR=code;
+  subChatRoom(code);
   DB.ref('rooms/'+code).on('value',function(s){
     var data=s.val();
     if(!data){ROOM=null;scr('home');toast('Salle fermée.');lg('WRN','Room closed',{room:code});return;}
@@ -586,6 +611,63 @@ function subRoom(code){
       }
     }
   });
+}
+
+// ════════════════════════════════════════════════════
+// CHAT
+// ════════════════════════════════════════════════════
+function subChatRoom(code){
+  if(CHAT_LSTNR&&DB){DB.ref('rooms/'+CHAT_LSTNR+'/chat').off('value');CHAT_LSTNR=null;}
+  CHAT_LSTNR=code;
+  DB.ref('rooms/'+code+'/chat').limitToLast(100).on('value',function(s){
+    var msgs=[];s.forEach(function(c){msgs.push(c.val());});
+    if(!CHAT_OPEN){
+      var seen=parseInt(localStorage.getItem('pili_chat_seen_'+code)||'0');
+      CHAT_UNREAD=msgs.filter(function(m){return m.ts>seen&&m.pid!==PID;}).length;
+    }
+    updateChatFab();
+    if(CHAT_OPEN)renderChat(msgs);
+  });
+}
+function sendChat(text){
+  text=(text||'').trim();if(!text||!ROOM||!DB)return;
+  var me=GS&&GS.players&&GS.players[PID];
+  DB.ref('rooms/'+ROOM+'/chat').push({pid:PID,name:me?me.name:'?',text:text,ts:Date.now()});
+}
+function renderChat(msgs){
+  var el=document.getElementById('chat-msgs');if(!el)return;
+  el.innerHTML=msgs.map(function(m){
+    var time=new Date(m.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    var mine=m.pid===PID;
+    return'<div class="chat-msg'+(mine?' chat-msg-me':'')+'">'+
+      '<span class="chat-msg-name">'+esc(m.name)+'</span>'+
+      '<span class="chat-msg-time">'+time+'</span>'+
+      esc(m.text)+'</div>';
+  }).join('');
+  el.scrollTop=el.scrollHeight;
+}
+function updateChatFab(){
+  var fab=document.getElementById('chat-fab');
+  var badge=document.getElementById('chat-badge');
+  if(!fab||!badge)return;
+  if(CHAT_UNREAD>0){badge.textContent=CHAT_UNREAD>9?'9+':String(CHAT_UNREAD);badge.classList.remove('hidden');}
+  else badge.classList.add('hidden');
+}
+function openChat(){
+  CHAT_OPEN=true;CHAT_UNREAD=0;
+  if(ROOM)localStorage.setItem('pili_chat_seen_'+ROOM,String(Date.now()));
+  updateChatFab();
+  document.getElementById('chat-panel').classList.add('open');
+  if(ROOM&&DB){
+    DB.ref('rooms/'+ROOM+'/chat').limitToLast(100).once('value',function(s){
+      var msgs=[];s.forEach(function(c){msgs.push(c.val());});renderChat(msgs);
+    });
+  }
+  setTimeout(function(){var inp=document.getElementById('chat-input');if(inp)inp.focus();},300);
+}
+function closeChat(){
+  CHAT_OPEN=false;
+  document.getElementById('chat-panel').classList.remove('open');
 }
 
 // ════════════════════════════════════════════════════
@@ -726,15 +808,14 @@ function rndrGame(gs){
   }
   gt.style.display='';
   var trick=clnT(gs.trick||{}),tE=Object.entries(trick);
-  var blind=['revblind','blindmask'].indexOf(m.e)>=0; // t5sblind: cartes jouées visibles dans le pli
-  // lastlook: cartes cachées jusqu'au dernier joueur, révélées quand il ne reste qu'un joueur à jouer
+  // ANO-027: trick toujours visible — lastlook seul peut masquer temporairement
   var np=players.length;
   var lastlookHide=m.e==='lastlook'&&tE.length<np-1;
   var lastlookReveal=m.e==='lastlook'&&tE.length===np-1&&gs.cp===PID;
   document.getElementById('gtcards').innerHTML=tE.length===0
     ?'<span style="color:rgba(255,255,255,0.3);font-size:13px">En attente...</span>'
     :tE.map(function(e){var pid=e[0],c=e[1],p=gs.players[pid];
-      return'<div class="tcw">'+mkCard(c,{sm:true,hid:(blind&&pid!==PID)||lastlookHide})+'<div class="tcpn">'+esc(p?p.name:'?')+'</div></div>';
+      return'<div class="tcw">'+mkCard(c,{sm:true,hid:lastlookHide})+'<div class="tcpn">'+esc(p?p.name:'?')+'</div></div>';
     }).join('');
   if(lastlookReveal){
     var existRev=document.getElementById('lastlook-reveal-msg');
@@ -806,10 +887,11 @@ function rndrPanel(gs,me,players){
   if((ph==='betting'||ph==='betblind')&&(imt||myTurnToBet)&&(me.bet===null||me.bet===undefined)){
     bp.classList.remove('hidden');
     var tot=players.reduce(function(a,p){return a+(p.bet!==null&&p.bet!==undefined?p.bet:0);},0);
+    var betN=m.e==='draw1'?m.n+1:m.n; // draw1: paris sur N+1 cartes (pioche bonus)
     var forb=m.e==='nob0'?[0]:(m.e==='nob1'?[1]:[]);
     if(me.bet===null||me.bet===undefined)BETV=0;
     bp.innerHTML=
-      '<div class="binfo">Total parié: <strong>'+tot+'</strong>/'+m.n+(tot===m.n?' <span style="color:#e63946">⚠️ Interdit!</span>':'')+'</div>'+
+      '<div class="binfo">Total parié: <strong>'+tot+'</strong>/'+betN+(tot===betN?' <span style="color:#e63946">⚠️ Interdit!</span>':'')+(m.e==='draw1'?' <span style="font-size:11px;opacity:0.6">(5c+1 bonus)</span>':'')+'</div>'+
       (forb.length?'<div style="font-size:11px;color:#ff6b6b;text-align:center;margin-bottom:6px">Interdit de parier '+forb.join(' ou ')+'</div>':'')+
       '<div class="brow"><button class="bbtn" id="bm" type="button">−</button>'+
       '<div class="bval" id="bdisp">'+BETV+'</div>'+
@@ -859,15 +941,19 @@ function rndrPanel(gs,me,players){
       '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px">Plis: '+
       players.map(function(p,i){return'<span style="color:'+PC[i%PC.length]+'">'+esc(p.name.split(' ')[0])+': '+(p.tw||0)+'</span>';}).join(' · ')+'</div>'+
       '</div>'+
-      (HOST?'<button class="btn btn-teal" id="btn-next-trick" type="button">▶ Pli suivant</button>':
+      (HOST?(gs.lastTrick?'<button class="btn btn-gold" id="btn-next-trick" type="button">📊 Voir les résultats</button>':
+      '<button class="btn btn-teal" id="btn-next-trick" type="button">▶ Pli suivant</button>'):
       '<div class="wmsg">En attente de l\'h\u00f4te...</div>');
     if(HOST){
       var bnt=document.getElementById('btn-next-trick');
       function doNextTrick(){
-        DB.ref('rooms/'+ROOM+'/trick').set({_x:true})
-        .then(function(){
-          return DB.ref('rooms/'+ROOM).update({phase:'playing',cp:gs.trickWinner,trickWinner:null});
-        });
+        if(gs.lastTrick){
+          DB.ref('rooms/'+ROOM+'/trick').set({_x:true})
+          .then(function(){return DB.ref('rooms/'+ROOM).update({phase:'results',cp:null,trickWinner:null,lastTrick:null});});
+        }else{
+          DB.ref('rooms/'+ROOM+'/trick').set({_x:true})
+          .then(function(){return DB.ref('rooms/'+ROOM).update({phase:'playing',cp:gs.trickWinner,trickWinner:null});});
+        }
       }
       if(bnt){bnt.addEventListener('click',doNextTrick);bnt.addEventListener('touchend',function(e){e.preventDefault();doNextTrick();},false);}
     }
@@ -909,7 +995,8 @@ function doBet(){
   if(m.e==='nocopy'){var mi=pl.findIndex(function(p){return p.id===PID;});if(mi>0&&pl[mi-1].bet===bet){toast('⛔ Interdit de copier!');lg('WRN','Bet refused: nocopy',{bet:bet});return;}}
   var oth=pl.filter(function(p){return p.id!==PID&&p.bet!==null&&p.bet!==undefined;});
   var so=oth.reduce(function(a,p){return a+p.bet;},0);
-  if(pl.filter(function(p){return p.bet===null||p.bet===undefined;}).length===1&&so+bet===m.n){toast('⛔ Total interdit: '+m.n);lg('WRN','Bet refused: total=n',{so:so,bet:bet,n:m.n});return;}
+  var betNv=m.e==='draw1'?m.n+1:m.n;
+  if(pl.filter(function(p){return p.bet===null||p.bet===undefined;}).length===1&&so+bet===betNv){toast('⛔ Total interdit: '+betNv);lg('WRN','Bet refused: total=n',{so:so,bet:bet,n:betNv});return;}
   lg('ACT','doBet',{bet:bet,mission:m.e});
   act({type:'bet',v:bet});
 }
@@ -1187,7 +1274,11 @@ function act(action){
             if(m.e==='desig'&&p.dt&&players[p.dt]){var tgt=players[p.dt],ttw=tgt.id===wid?ntw:(tgt.tw||0);np2=Math.max(0,np2+Math.abs((tgt.bet||0)-ttw));}
             upd['rooms/'+ROOM+'/players/'+p.id+'/pilis']=np2;
           });
-          upd['rooms/'+ROOM+'/phase']='results';upd['rooms/'+ROOM+'/cp']=null;
+          // EVO-009: dernier pli aussi visible avant les résultats
+          upd['rooms/'+ROOM+'/phase']='trick_review';
+          upd['rooms/'+ROOM+'/trickWinner']=wid;
+          upd['rooms/'+ROOM+'/cp']=null;
+          upd['rooms/'+ROOM+'/lastTrick']=true;
         }else{
           // BUG-005 FIX: exchwin — le gagnant échange 1 carte avec le suivant
           if(m.e==='exchwin'){
@@ -1310,8 +1401,30 @@ document.addEventListener('DOMContentLoaded', function() {
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/pilo-pilo/sw.js').catch(function(){});
   }
+  // Chat
+  var chatFab=document.getElementById('chat-fab');
+  var chatClose=document.getElementById('chat-close');
+  var chatSend=document.getElementById('chat-send');
+  var chatInput=document.getElementById('chat-input');
+  chatFab.addEventListener('click',openChat);
+  chatFab.addEventListener('touchend',function(e){e.preventDefault();openChat();},false);
+  chatClose.addEventListener('click',closeChat);
+  chatClose.addEventListener('touchend',function(e){e.preventDefault();closeChat();},false);
+  chatSend.addEventListener('click',function(){sendChat(chatInput.value);chatInput.value='';});
+  chatSend.addEventListener('touchend',function(e){e.preventDefault();sendChat(chatInput.value);chatInput.value='';},false);
+  chatInput.addEventListener('keydown',function(e){if(e.key==='Enter'){sendChat(this.value);this.value='';}});
 });
 </script>
+<!-- Chat panel -->
+<div id="chat-panel" class="chat-panel">
+  <div class="chat-head"><span>💬 Chat</span><button class="chat-close-btn" id="chat-close">✕</button></div>
+  <div id="chat-msgs" class="chat-msgs"></div>
+  <div class="chat-input-row">
+    <input id="chat-input" class="chat-input" placeholder="Message..." maxlength="200" autocomplete="off" autocorrect="off"/>
+    <button id="chat-send" class="chat-send-btn">↑</button>
+  </div>
+</div>
+<button id="chat-fab" class="chat-fab hidden">💬<span id="chat-badge" class="chat-badge hidden"></span></button>
 <!-- Debug panel — triple-tap sur la version pour l'ouvrir -->
 <div id="dbg-panel">
   <div id="dbg-head">
