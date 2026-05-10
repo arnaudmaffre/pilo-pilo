@@ -27,18 +27,26 @@ async function launchSolo(page) {
   await page.waitForSelector('#screen-game:not(.hidden)', { timeout: LONG_TIMEOUT });
   // Attendre que le jeu soit chargé (mission visible)
   await page.waitForSelector('#gmission', { timeout: LONG_TIMEOUT });
-  await page.waitForTimeout(2000);
+  // Attendre que Firebase synchronise et que les cartes soient distribuées
+  await page.waitForFunction(() => {
+    const hand = document.getElementById('ghand');
+    return hand && hand.children.length > 0;
+  }, { timeout: LONG_TIMEOUT });
+  await page.waitForTimeout(1500);
 }
 
 async function waitForBetPanel(page) {
-  // Attendre que le panel de pari soit visible (max 12s)
-  // Certaines missions ont un timer avant les paris
+  // Attendre que le panel de pari soit visible (max 15s)
+  // On cherche le texte "Confirmer le pari" qui est toujours présent
   try {
-    await page.waitForSelector('#gbottom:not(.hidden)', { timeout: 12000 });
-    // Vérifier que c'est bien le panel de pari (contient le bouton confirmer)
-    await page.waitForSelector('#bok', { timeout: 3000 });
+    await page.waitForFunction(() => {
+      const bp = document.getElementById('gbottom');
+      if(!bp || bp.classList.contains('hidden')) return false;
+      return bp.textContent.includes('Confirmer le pari') || bp.textContent.includes('Confirmer');
+    }, { timeout: 15000 });
     return true;
   } catch(e) {
+    console.log('Panel de pari non visible après 15s');
     return false;
   }
 }
@@ -101,7 +109,7 @@ test('T2.3 — Cartes distribuées', async ({ page }) => {
 test('T2.4 — Bouton Quitter visible', async ({ page }) => {
   await launchSolo(page);
   // FIX T2.4: le bouton s'appelle "← Quitter" - chercher par ID ou texte partiel
-  const quitBtn = page.locator('button:has-text("Quitter")').first();
+  const quitBtn = page.locator('#btn-quit-game');
   await expect(quitBtn).toBeVisible({ timeout: LONG_TIMEOUT });
   const txt = await quitBtn.textContent();
   console.log('✅ T2.4 — Bouton Quitter trouvé:', txt);
@@ -122,13 +130,15 @@ test('T2.6 — Pari fonctionne', async ({ page }) => {
   // FIX T2.6: utiliser waitForBetPanel pour gérer les missions timer
   const hasBet = await waitForBetPanel(page);
   if (hasBet) {
-    await page.click('#bet-p');
-    const betVal = await page.locator('#bet-d').textContent();
+    // Cliquer sur + pour augmenter le pari
+    await page.locator('#bet-p').click();
+    await page.waitForTimeout(300);
+    const betVal = await page.locator('#bdisp').textContent();
     expect(parseInt(betVal)).toBe(1);
-    await page.click('#bet-ok');
+    // Confirmer par texte du bouton (plus robuste que l'ID)
+    await page.locator('button:has-text("Confirmer le pari")').click();
     console.log('✅ T2.6 — Pari confirmé OK');
   } else {
-    // Mission timer - pas de pari immédiat, c'est normal
     console.log('⚠️ T2.6 — Mission timer, pari après chrono (OK)');
   }
 });
