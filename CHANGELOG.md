@@ -1,5 +1,9 @@
 # 🌶️ Pili Pili — Changelog
 
+## Beta 1.2.3 — 2026-05-10
+### ✅ Anomalies corrigées
+- ANO-033 — ReferenceError pl.length dans rndrGame (→ players.length) : crash toutes les parties
+
 ## Beta 1.2.2 — 2026-05-10
 ### ✅ Anomalies corrigées
 - ANO-031 — faceup : zone cartes adversaires visible aussi pendant trick_review (entre les plis)
