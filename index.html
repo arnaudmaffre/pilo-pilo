@@ -101,7 +101,7 @@ input[type=range]{width:100%;accent-color:#ffd166;}
   <div class="logo-emoji">🌶️</div>
   <div class="logo-title">PILI PILI</div>
   <div class="logo-sub">LE JEU DE PLIS ET DE PARIS</div>
-  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.4</div>
+  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.5</div>
   <div id="fb-status" class="status-box s-wait">⏳ Initialisation...</div>
   <div class="form-group">
     <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
@@ -636,9 +636,51 @@ function rndrGame(gs){
   var rw=document.getElementById('revw');if(rw)rw.remove();
   if(rev)gt.insertAdjacentHTML('beforeend','<div id="revw" class="rwarn">⚠️ Valeurs inversées — la plus faible l\'emporte !</div>');
   var hand=gh(me);
-  var hidH=(['t5sblind','blindmask','revblind'].indexOf(m.e)>=0&&gs.phase==='playing')||gs.phase==='timer'||(m.e==='betblind'&&(gs.phase==='betblind'||gs.phase==='betting'));
+  // BUG-001 FIX: forehead = mes cartes cachées pendant paris ET jeu
+  var hidH=(['t5sblind','blindmask','revblind','forehead'].indexOf(m.e)>=0&&(gs.phase==='playing'||gs.phase==='betting'||gs.phase==='betblind'))||gs.phase==='timer'||(m.e==='betblind'&&(gs.phase==='betblind'||gs.phase==='betting'));
   document.getElementById('ghlbl').textContent='Votre main ('+hand.length+'c)'+(gs.phase==='sel3of5'?' — Sélectionnez 3 cartes':'');
   var canPlay=gs.phase==='playing'&&gs.cp===PID;
+  // BUG-003 FIX: faceup — afficher cartes de tous les joueurs
+  var faceupArea=document.getElementById('faceup-area');
+  if(m.e==='faceup'&&gs.phase==='playing'){
+    if(!faceupArea){
+      var fa=document.createElement('div');
+      fa.id='faceup-area';
+      fa.style.cssText='background:rgba(255,209,102,0.08);border:1px solid rgba(255,209,102,0.3);border-radius:12px;padding:10px;margin-bottom:12px;';
+      document.getElementById('gtrick').parentNode.insertBefore(fa,document.getElementById('gtrick'));
+    }
+    faceupArea=document.getElementById('faceup-area');
+    faceupArea.innerHTML='<div style="font-size:11px;color:#ffd166;margin-bottom:8px">👁 Cartes face visible — tout le monde voit tout</div>'+
+      players.filter(function(p){return p.id!==PID;}).map(function(p,i){
+        var ph2=gh(gs.players[p.id]);
+        return'<div style="margin-bottom:6px"><span style="font-size:11px;color:'+PC[(i+1)%PC.length]+'">'+esc(p.name)+':</span>'+
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">'+
+          ph2.map(function(c){return mkCard(c,{sm:true});}).join('')+'</div></div>';
+      }).join('');
+  } else if(faceupArea){
+    faceupArea.style.display='none';
+  }
+  // BUG-006 FIX: forehead — afficher cartes des autres pendant les paris
+  var foreheadArea=document.getElementById('forehead-area');
+  if(m.e==='forehead'&&(gs.phase==='betting'||gs.phase==='playing')){
+    if(!foreheadArea){
+      var fh=document.createElement('div');
+      fh.id='forehead-area';
+      fh.style.cssText='background:rgba(230,57,70,0.08);border:1px solid rgba(230,57,70,0.3);border-radius:12px;padding:10px;margin-bottom:12px;';
+      document.getElementById('gtrick').parentNode.insertBefore(fh,document.getElementById('gtrick'));
+    }
+    foreheadArea=document.getElementById('forehead-area');
+    foreheadArea.innerHTML='<div style="font-size:11px;color:#ff6b6b;margin-bottom:8px">🎭 Masque — vous voyez les cartes des autres, pas les vôtres</div>'+
+      players.filter(function(p){return p.id!==PID;}).map(function(p,i){
+        var ph3=gh(gs.players[p.id]);
+        return'<div style="margin-bottom:6px"><span style="font-size:11px;color:'+PC[(i+1)%PC.length]+'">'+esc(p.name)+':</span>'+
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">'+
+          ph3.map(function(c){return mkCard(c,{sm:true});}).join('')+'</div></div>';
+      }).join('');
+  } else if(foreheadArea){
+    foreheadArea.style.display='none';
+  }
+
   document.getElementById('ghand').innerHTML=(gs.phase==='sel3of5')
     ?hand.map(function(c){var s=SEL.indexOf(c.id)>=0;return mkCard(c,{hid:!s,sel:s,oc:'selCard('+c.id+')'});}).join('')
     :hand.map(function(c){return mkCard(c,{hid:hidH,oc:canPlay?'clickCard('+c.id+')':''});}).join('');
@@ -829,20 +871,11 @@ function applyExchange(effect, pl, players){
     for(var i=n-1;i>0;i--)newHands[pl[i].id]=newHands[pl[i-1].id];
     newHands[pl[0].id]=tmp2;
   }else if(effect==='exch2r'){
-    // 2 cartes vers la droite
-    for(var i=0;i<n;i++){
-      var next=(i+1)%n;
-      var h=newHands[pl[i].id];
-      var give=h.splice(0,2); // prend les 2 premières
-      newHands[pl[next].id]=newHands[pl[next].id].concat(give);
-    }
-    // Recalculer car on a muté pendant l'itération - refaire proprement
+    // BUG-007 FIX: calcul propre sans mutation
     var saved={};pl.forEach(function(p){saved[p.id]=gh(players[p.id]).slice();});
     pl.forEach(function(p,i){
-      var next=(i+1)%n;
-      var give=saved[p.id].slice(0,2);
-      var keep=saved[p.id].slice(2);
-      newHands[p.id]=keep.concat(saved[pl[(i-1+n)%n].id].slice(0,2));
+      // Je garde mes cartes sauf les 2 premières, et je reçois les 2 premières du joueur de gauche
+      newHands[p.id]=saved[p.id].slice(2).concat(saved[pl[(i-1+n)%n].id].slice(0,2));
     });
   }else if(effect==='exch2l'){
     // 2 cartes vers la gauche
@@ -901,10 +934,34 @@ function act(action){
         // ANO-029 FIX: appliquer l'échange de mains avant de jouer
         var exchEffects=['exch2r','exch2l','exchr','exchl','exch1r','exch1l','exch3r','exch3l'];
         if(exchEffects.indexOf(m.e)>=0){
-          // Calculer les nouvelles mains après échange
           var newHands=applyExchange(m.e,pl,players);
           pl.forEach(function(p){
             if(newHands[p.id])upd['rooms/'+ROOM+'/players/'+p.id+'/hand']=newHands[p.id];
+          });
+        }
+        // BUG-002 FIX: draw1 — pioche 1 carte supplémentaire après les paris
+        if(m.e==='draw1'){
+          var fullDeck=rnd(mkDeck());
+          // Retirer les cartes déjà distribuées
+          var usedIds={};
+          pl.forEach(function(p){gh(players[p.id]).forEach(function(c){usedIds[c.id]=true;});});
+          var remaining=fullDeck.filter(function(c){return!usedIds[c.id];});
+          pl.forEach(function(p,i){
+            var hand=gh(players[p.id]).slice();
+            if(remaining[i])hand.push(remaining[i]);
+            upd['rooms/'+ROOM+'/players/'+p.id+'/hand']=hand;
+          });
+        }
+        // BUG-004 FIX: exchsim — échange 1 carte automatique (IA et humain)
+        if(m.e==='exchsim'){
+          var s7={};pl.forEach(function(p){s7[p.id]=gh(players[p.id]).slice();});
+          // Chaque joueur échange sa première carte avec le joueur suivant
+          pl.forEach(function(p,i){
+            var next=(i+1)%pl.length;
+            var myCard=s7[p.id][0];
+            var theirCard=s7[pl[next].id][0];
+            var myHand=s7[p.id].slice(1);myHand.unshift(theirCard);
+            upd['rooms/'+ROOM+'/players/'+p.id+'/hand']=myHand;
           });
         }
         upd['rooms/'+ROOM+'/phase']=nph;
@@ -960,7 +1017,21 @@ function act(action){
           });
           upd['rooms/'+ROOM+'/phase']='results';upd['rooms/'+ROOM+'/cp']=null;
         }else{
-          // EVO-004: phase intermédiaire trick_review - afficher gagnant avant de continuer
+          // BUG-005 FIX: exchwin — le gagnant échange 1 carte avec le suivant
+          if(m.e==='exchwin'){
+            var exchWinHands={};
+            pl.forEach(function(p){exchWinHands[p.id]=p.id===who?nh:gh(p);});
+            var winIdx=pl.findIndex(function(p){return p.id===wid;});
+            var nextIdx=(winIdx+1)%pl.length;
+            var winH=exchWinHands[wid].slice();
+            var nextH=exchWinHands[pl[nextIdx].id].slice();
+            if(winH.length>0&&nextH.length>0){
+              var tmp=winH[0];winH[0]=nextH[0];nextH[0]=tmp;
+              upd['rooms/'+ROOM+'/players/'+wid+'/hand']=winH;
+              upd['rooms/'+ROOM+'/players/'+pl[nextIdx].id+'/hand']=nextH;
+            }
+          }
+          // EVO-004: phase intermédiaire trick_review
           upd['rooms/'+ROOM+'/phase']='trick_review';
           upd['rooms/'+ROOM+'/trickWinner']=wid;
           upd['rooms/'+ROOM+'/cp']=wid;
