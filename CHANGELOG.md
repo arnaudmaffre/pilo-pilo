@@ -1,9 +1,16 @@
 # 🌶️ Pili Pili — Changelog
 
+## Beta 1.2.1 — 2026-05-10
+### 🟡 Évolutions
+- LOG-005 — Persistance localStorage (300 entrées, restaurée à l'ouverture de l'onglet)
+- LOG-006 — Ship Firebase auto toutes les 5 min + à la fermeture de l'onglet (logs/{jour}/{pid})
+- LOG-007 — Bouton 📥 .log : télécharge le fichier texte à la demande
+- LOG-008 — Bouton ☁️ Firebase : envoi manuel instantané vers Firebase
+
 ## Beta 1.2.0 — 2026-05-10
 ### 🟡 Évolutions
-- LOG-001 — Logger structuré window.LOGS (400 entrées, tags ERR/WRN/ACT/AI/INF)
-- LOG-002 — Panneau debug : triple-tap sur le numéro de version → logs + bouton Copier
+- LOG-001 — Logger structuré window.LOGS (500 entrées, tags ERR/WRN/ACT/AI/INF)
+- LOG-002 — Panneau debug : triple-tap sur le numéro de version → logs + boutons
 - LOG-003 — Capture window.onerror + unhandledrejection (erreurs JS non gérées)
 - LOG-004 — Instrumentation : phases, act(), aiTurn(), doBet(), postBet(), doNextRound()
 

@@ -104,7 +104,7 @@ input[type=range]{width:100%;accent-color:#ffd166;}
 #dbg-panel.show{display:flex;}
 #dbg-head{display:flex;gap:8px;align-items:center;margin-bottom:10px;position:sticky;top:0;background:rgba(0,0,0,.95);padding-bottom:8px;}
 #dbg-close{background:#e63946;border:none;color:#fff;padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Fredoka One',cursive;}
-#dbg-copy-btn{background:#2a9d8f;border:none;color:#fff;padding:6px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Fredoka One',cursive;}
+#dbg-copy-btn,#dbg-dl-btn,#dbg-ship-btn{background:#2a9d8f;border:none;color:#fff;padding:6px 10px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Fredoka One',cursive;}
 #dbg-logs{font-family:monospace;font-size:10px;white-space:pre-wrap;word-break:break-all;flex:1;}
 .dl-err{color:#ff6b6b;}.dl-wrn{color:#ffd166;}.dl-act{color:#4caf50;}.dl-ai{color:#a8dadc;}.dl-inf{color:rgba(255,255,255,.6);}
 @media(min-width:540px){
@@ -124,7 +124,7 @@ input[type=range]{width:100%;accent-color:#ffd166;}
   <div class="logo-emoji">🌶️</div>
   <div class="logo-title">PILI PILI</div>
   <div class="logo-sub">LE JEU DE PLIS ET DE PARIS</div>
-  <div id="ver-lbl" style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;cursor:pointer;user-select:none;">Beta 1.2.0</div>
+  <div id="ver-lbl" style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;cursor:pointer;user-select:none;">Beta 1.2.1</div>
   <div id="fb-status" class="status-box s-wait">⏳ Initialisation...</div>
   <div class="form-group">
     <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
@@ -273,13 +273,39 @@ var PC    = ['#e63946','#457b9d','#2a9d8f','#e9c46a','#f4a261','#a8dadc','#6d687
 // LOGGER — triple-tap sur la version pour ouvrir le panneau
 // ════════════════════════════════════════════════════
 window.LOGS=[];
+var _lsFlush;
+// Restaure les logs de la session précédente depuis localStorage
+(function(){try{var s=JSON.parse(localStorage.getItem('pili_logs')||'[]');if(s.length){s.forEach(function(r){window.LOGS.push({raw:'[PREV]'+r,lvl:'inf',tag:'PREV'});});}}catch(ex){}})();
 function lg(tag,msg,data){
   var ts=new Date().toISOString().substr(11,8);
   var line='['+ts+']['+tag+'] '+msg+(data!==undefined?' '+JSON.stringify(data):'');
   var lvl=tag==='ERR'?'err':tag==='WRN'?'wrn':tag==='ACT'?'act':tag==='AI'?'ai':'inf';
   window.LOGS.push({ts:ts,tag:tag,msg:msg,data:data,lvl:lvl,raw:line});
-  if(window.LOGS.length>400)window.LOGS.shift();
+  if(window.LOGS.length>500)window.LOGS.shift(); // cap 500 entrées ≈ 150 KB
   if(tag==='ERR')console.error(line);else if(tag==='WRN')console.warn(line);else console.log(line);
+  // Persist localStorage (debounced 3s, max 300 entrées = ~90 KB)
+  clearTimeout(_lsFlush);
+  _lsFlush=setTimeout(function(){try{localStorage.setItem('pili_logs',JSON.stringify(window.LOGS.slice(-300).map(function(e){return e.raw;})));}catch(ex){}},3000);
+}
+// Envoie un snapshot des logs vers Firebase (path logs/{jour}/{pid})
+function shipLogs(reason){
+  if(!DB||!window.LOGS.length)return;
+  var day=new Date().toISOString().substr(0,10);
+  var entries=window.LOGS.slice(-200).map(function(e){return e.raw;}); // 200 dernières ≈ 60 KB max
+  DB.ref('logs/'+day+'/'+PID).set({
+    pid:PID,room:ROOM||'none',reason:reason||'interval',
+    ts:Date.now(),n:window.LOGS.length,entries:entries
+  }).catch(function(){});
+}
+// Ship automatique toutes les 5 min + à la fermeture de l'onglet
+setInterval(function(){shipLogs('5min');},5*60*1000);
+window.addEventListener('beforeunload',function(){shipLogs('unload');});
+function downloadLogs(){
+  var txt=window.LOGS.map(function(e){return e.raw;}).join('\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
+  a.download='pilipili-'+new Date().toISOString().substr(0,19).replace(/:/g,'-')+'.log';
+  a.click();URL.revokeObjectURL(a.href);
 }
 function showDbg(){
   var p=document.getElementById('dbg-panel');
@@ -1263,6 +1289,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var txt=window.LOGS.map(function(e){return e.raw;}).join('\n');
     navigator.clipboard&&navigator.clipboard.writeText(txt).then(function(){toast('📋 Logs copiés!');});
   });
+  document.getElementById('dbg-dl-btn').addEventListener('click',function(){downloadLogs();toast('📥 Téléchargement...');});
+  document.getElementById('dbg-ship-btn').addEventListener('click',function(){shipLogs('manual');toast('☁️ Envoyé vers Firebase!');});
   var vtap=0,vtimer;
   document.getElementById('ver-lbl').addEventListener('click',function(){
     vtap++;clearTimeout(vtimer);
@@ -1279,6 +1307,8 @@ document.addEventListener('DOMContentLoaded', function() {
   <div id="dbg-head">
     <button id="dbg-close">✕ Fermer</button>
     <button id="dbg-copy-btn">📋 Copier</button>
+    <button id="dbg-dl-btn">📥 .log</button>
+    <button id="dbg-ship-btn">☁️ Firebase</button>
     <span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:auto;" id="dbg-count"></span>
   </div>
   <pre id="dbg-logs"></pre>
