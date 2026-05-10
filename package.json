@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "Tests automatiques Pili Pili",
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug",
-    "report": "playwright show-report"
+    "test": "playwright test tests/smoke.spec.js",
+    "test:smoke": "playwright test tests/smoke.spec.js",
+    "test:functional": "playwright test tests/functional.spec.js --timeout=120000",
+    "test:all": "playwright test",
+    "test:report": "playwright show-report",
+    "test:mission": "playwright test tests/functional.spec.js -g"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0"
