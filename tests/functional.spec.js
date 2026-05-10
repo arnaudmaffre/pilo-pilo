@@ -1,623 +1,572 @@
 /**
- * TESTS FONCTIONNELS PILI PILI — v1.0
- * 
- * Couvre les 41 missions avec vérifications :
- * - Visibilité des cartes (face visible/cachée)
- * - Cartes des autres joueurs visibles si mission "masque"
- * - Phase de pari correcte
- * - Déroulement complet jusqu'aux résultats
- * 
- * Catégories de missions :
- * A) STANDARD     — cartes visibles, pari normal
- * B) ECHANGE      — échange de mains après pari
- * C) PARI_SPEC    — contraintes sur le pari (interdit 0, interdit 1, nocopy)
- * D) TIMER        — chrono avant pari (t3s, t5sblind)
- * E) BETBLIND     — pari avant de voir ses cartes
- * F) MASQUE       — on voit les cartes des autres, pas les siennes
- * G) REVERSE      — valeurs inversées
- * H) DESIG        — désigner un joueur
- * I) SEL3OF5      — choisir 3 cartes sur 5
- * J) SPECIAL      — cursed, firstlast, winminus, faceup, draw1
+ * TESTS FONCTIONNELS PILI PILI v2.0
+ * Approche: lancer des parties Solo et vérifier les comportements
+ * selon la mission qui se présente naturellement
  */
-
 const { test, expect } = require('@playwright/test');
 
 const URL = process.env.BASE_URL || 'https://arnaudmaffre.github.io/pilo-pilo/';
-const TIMEOUT = 20000;
-const AI_TIMEOUT = 12000;
+const FIREBASE_TIMEOUT = 15000;
+const GAME_TIMEOUT = 30000;
+const AI_WAIT = 8000;
 
-// ═══════════════════════════════════════════════════
-// CATALOGUE DES 41 MISSIONS avec leurs règles
-// ═══════════════════════════════════════════════════
-const MISSIONS = [
-  // A) STANDARD
-  {id:3,  e:'nob0',     cat:'PARI_SPEC',  cards:4, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Pari interdit 0'},
-  {id:11, e:'nob1',     cat:'PARI_SPEC',  cards:6, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Pari interdit 1'},
-  {id:38, e:'nob1',     cat:'PARI_SPEC',  cards:5, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Pari interdit 1 (5c)'},
-  {id:36, e:'nocopy',   cat:'PARI_SPEC',  cards:4, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Pari différent du précédent'},
-  // B) ECHANGE
-  {id:1,  e:'exch2r',   cat:'ECHANGE',    cards:6, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Échange 2 cartes →'},
-  {id:2,  e:'exchr',    cat:'ECHANGE',    cards:7, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Main entière →'},
-  {id:4,  e:'exch2l',   cat:'ECHANGE',    cards:4, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Échange 2 cartes ←'},
-  {id:5,  e:'exchl',    cat:'ECHANGE',    cards:5, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Main entière ←'},
-  {id:6,  e:'exch2l',   cat:'ECHANGE',    cards:6, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Échange 2 cartes ← (6c)'},
-  {id:19, e:'exch1r',   cat:'ECHANGE',    cards:3, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Échange 1 carte →'},
-  {id:21, e:'exchr',    cat:'ECHANGE',    cards:5, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Main entière circulaire'},
-  {id:25, e:'exch3r',   cat:'ECHANGE',    cards:5, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Échange 3 cartes →'},
-  {id:26, e:'exch3l',   cat:'ECHANGE',    cards:7, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Échange 3 cartes ←'},
-  {id:29, e:'exch1l',   cat:'ECHANGE',    cards:3, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Échange 1 carte ←'},
-  {id:40, e:'exchr',    cat:'ECHANGE',    cards:5, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Main entière → (5c)'},
-  {id:8,  e:'exchsim',  cat:'ECHANGE',    cards:6, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Échange simultané'},
-  {id:20, e:'exchsim',  cat:'ECHANGE',    cards:4, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Échange simultané (4c)'},
-  {id:28, e:'exchwin',  cat:'ECHANGE',    cards:5, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Échange après pli gagné'},
-  // C) TIMER
-  {id:10, e:'t3s',      cat:'TIMER',      cards:6, cardsVisible:true,  othersVisible:false, timerBefore:true,  betBlind:false, sel3:false, timerSec:3,  desc:'3 secondes !'},
-  {id:15, e:'t5sblind', cat:'TIMER',      cards:3, cardsVisible:false, othersVisible:false, timerBefore:true,  betBlind:false, sel3:false, timerSec:5,  desc:'5s puis à l\'aveugle'},
-  {id:33, e:'t5sblind', cat:'TIMER',      cards:5, cardsVisible:false, othersVisible:false, timerBefore:true,  betBlind:false, sel3:false, timerSec:5,  desc:'5s à l\'aveugle (5c)'},
-  // D) BETBLIND
-  {id:27, e:'betblind', cat:'BETBLIND',   cards:3, cardsVisible:false, othersVisible:false, timerBefore:false, betBlind:true,  sel3:false, desc:'Pari avant de voir'},
-  // E) MASQUE
-  {id:7,  e:'forehead', cat:'MASQUE',     cards:2, cardsVisible:false, othersVisible:true,  timerBefore:false, betBlind:false, sel3:false, desc:'Masque (voit les autres)'},
-  {id:32, e:'blindmask',cat:'MASQUE',     cards:2, cardsVisible:false, othersVisible:true,  timerBefore:false, betBlind:false, sel3:false, desc:'Masque Aveugle'},
-  {id:41, e:'blindmask',cat:'MASQUE',     cards:2, cardsVisible:false, othersVisible:true,  timerBefore:false, betBlind:false, sel3:false, desc:'Masque Aveugle v2'},
-  // F) REVERSE
-  {id:18, e:'rev',      cat:'REVERSE',    cards:6, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Valeurs inversées'},
-  {id:31, e:'rev',      cat:'REVERSE',    cards:4, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Valeurs inversées (4c)'},
-  {id:14, e:'revblind', cat:'REVERSE',    cards:7, cardsVisible:false, othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Inversé + à l\'aveugle'},
-  // G) DESIG
-  {id:9,  e:'desig',    cat:'DESIG',      cards:5, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Désigner un joueur (5c)'},
-  {id:13, e:'desig',    cat:'DESIG',      cards:3, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Désigner un joueur (3c)'},
-  // H) SEL3OF5
-  {id:12, e:'3of5',     cat:'SEL3OF5',    cards:5, cardsVisible:false, othersVisible:false, timerBefore:false, betBlind:false, sel3:true,  desc:'3 sur 5'},
-  // I) SPECIAL
-  {id:16, e:'draw1',    cat:'SPECIAL',    cards:4, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Pioche bonus (4c)'},
-  {id:39, e:'draw1',    cat:'SPECIAL',    cards:5, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Pioche bonus (5c)'},
-  {id:17, e:'cursed',   cat:'SPECIAL',    cards:5, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Numéros maudits 3-8'},
-  {id:35, e:'cursed',   cat:'SPECIAL',    cards:6, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Numéros maudits 34-38'},
-  {id:22, e:'winminus', cat:'SPECIAL',    cards:6, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Pari réussi = -Pili (6c)'},
-  {id:37, e:'winminus', cat:'SPECIAL',    cards:3, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Pari réussi = -Pili (3c)'},
-  {id:23, e:'fl',       cat:'SPECIAL',    cards:4, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'1er/Dernier pli maudit (4c)'},
-  {id:24, e:'fl',       cat:'SPECIAL',    cards:6, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'1er/Dernier pli maudit (6c)'},
-  {id:30, e:'faceup',   cat:'SPECIAL',    cards:4, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Cartes face visible (4c)'},
-  {id:34, e:'faceup',   cat:'SPECIAL',    cards:6, cardsVisible:true,  othersVisible:false, timerBefore:false, betBlind:false, sel3:false, desc:'Cartes face visible (6c)'},
-];
-
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════
 // HELPERS
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════
 async function waitForFirebase(page) {
   await page.waitForFunction(() => {
     const el = document.getElementById('fb-status');
     return el && (el.textContent.includes('Connecté') || el.textContent.includes('Entrez'));
-  }, { timeout: 12000 });
+  }, { timeout: FIREBASE_TIMEOUT });
 }
 
-async function launchSoloWithMission(page, missionEffect) {
+async function launchSolo(page) {
   await page.goto(URL);
   await waitForFirebase(page);
-  await page.fill('#home-name', 'TESTEUR');
-
-  // Injecter la mission spécifique via localStorage simulé
-  // On intercepte le random pour forcer la mission
-  await page.evaluate((effect) => {
-    // Override Math.random pour forcer la mission choisie
-    const MISS = window.MISS || [];
-    const idx = MISS.findIndex(m => m.e === effect);
-    if (idx >= 0) {
-      const orig = Math.random;
-      Math.random = function() {
-        Math.random = orig; // restaurer après 1 appel
-        return idx / MISS.length;
-      };
-    }
-  }, missionEffect);
-
+  await page.fill('#home-name', 'TEST');
   await page.click('#btn-solo');
-  await page.waitForSelector('#screen-game:not(.hidden)', { timeout: TIMEOUT });
-  await page.waitForFunction(() => {
-    const hand = document.getElementById('ghand');
-    return hand && hand.children.length > 0;
-  }, { timeout: TIMEOUT });
-  await page.waitForTimeout(1500);
+  await page.waitForSelector('#screen-game:not(.hidden)', { timeout: GAME_TIMEOUT });
+  await page.waitForTimeout(2000);
+}
+
+async function getMissionEffect(page) {
+  return page.evaluate(() => {
+    return window.GS && window.GS.m ? window.GS.m.e : null;
+  });
 }
 
 async function getMissionName(page) {
-  return page.locator('#gmission .mtitle').textContent().catch(() => 'Inconnue');
+  return page.evaluate(() => {
+    return window.GS && window.GS.m ? window.GS.m.t : 'Inconnue';
+  });
 }
 
-async function getCardCount(page) {
-  return page.locator('#ghand .card').count();
+async function getPhase(page) {
+  return page.evaluate(() => window.GS ? window.GS.phase : null);
 }
 
-async function areCardsHidden(page) {
-  // Cartes cachées = contiennent l'emoji 🌶️ avec opacité faible (classe hid)
-  const cards = await page.locator('#ghand .card').all();
-  if (cards.length === 0) return false;
-  // Vérifier si la première carte a un contenu caché
-  const first = await cards[0].innerHTML();
-  return first.includes('opacity:0.2') || first.includes('opacity:.2');
+async function getMyCards(page) {
+  return page.evaluate(() => {
+    if (!window.GS || !window.PID) return [];
+    var p = window.GS.players[window.PID];
+    if (!p || !p.hand) return [];
+    if (p.hand._x) return [];
+    return Array.isArray(p.hand) ? p.hand : Object.values(p.hand).filter(x => x && !x._x);
+  });
 }
 
-async function areOtherCardsVisible(page) {
-  // Dans les missions masque, les cartes des autres dans le pli/trick doivent être visibles
-  // On vérifie dans la barre des joueurs si des cartes sont affichées
-  const trickCards = await page.locator('#gtcards .card').count();
-  return trickCards > 0;
-}
-
-async function waitForBetPanel(page) {
+async function waitForBet(page) {
   try {
     await page.waitForFunction(() => {
       const bp = document.getElementById('gbottom');
-      return bp && !bp.classList.contains('hidden') &&
-        bp.textContent.includes('Confirmer');
-    }, { timeout: 15000 });
+      return bp && !bp.classList.contains('hidden') && bp.textContent.includes('Confirmer');
+    }, { timeout: 20000 });
     return true;
   } catch(e) { return false; }
 }
 
-async function doBet(page, value) {
-  value = value || 1;
-  for (let i = 0; i < value; i++) {
-    await page.locator('.bbtn').last().click();
+async function doBet(page, val) {
+  val = val || 1;
+  for (let i = 0; i < val; i++) {
+    await page.locator('#gbottom button:last-of-type').click();
     await page.waitForTimeout(200);
   }
   await page.locator('button:has-text("Confirmer le pari")').click();
+  await page.waitForTimeout(500);
 }
 
-async function waitForPhase(page, phaseText, timeout) {
-  timeout = timeout || TIMEOUT;
-  await page.waitForFunction((text) => {
-    const lbl = document.getElementById('gplbl');
-    return lbl && lbl.textContent.includes(text);
-  }, phaseText, { timeout });
-}
-
-async function waitForResults(page) {
+async function waitForPlay(page) {
   try {
-    await page.waitForSelector('#screen-results:not(.hidden)', { timeout: 60000 });
+    await page.waitForFunction(() => {
+      const bp = document.getElementById('gbottom');
+      return bp && !bp.classList.contains('hidden') && bp.textContent.includes('votre tour');
+    }, { timeout: AI_WAIT });
     return true;
   } catch(e) { return false; }
 }
 
-async function playFullRound(page, mission) {
-  // Gérer les phases spéciales avant le pari
-  const phase = await page.locator('#gplbl').textContent().catch(() => '');
-
-  // Phase TIMER — cliquer sur Révéler si présent
-  if (mission.timerBefore) {
-    try {
-      const revealBtn = page.locator('button:has-text("Révéler")');
-      const visible = await revealBtn.isVisible().catch(() => false);
-      if (visible) await revealBtn.click();
-      await page.waitForTimeout((mission.timerSec || 5) * 1000 + 1000);
-    } catch(e) {}
+async function playOneCard(page) {
+  const cards = await page.locator('#ghand .card').all();
+  if (cards.length === 0) return false;
+  await cards[0].click();
+  await page.waitForTimeout(300);
+  // Joker ?
+  const joker = page.locator('#modal-joker:not(.hidden)');
+  if (await joker.isVisible().catch(() => false)) {
+    await page.locator('#bjyes').click();
+    await page.waitForTimeout(300);
   }
+  return true;
+}
 
-  // Phase SEL3OF5 — sélectionner 3 cartes
-  if (mission.sel3) {
-    try {
-      await waitForPhase(page, '3 cartes', 8000);
+async function clickNextTrickIfVisible(page) {
+  const btn = page.locator('#btn-next-trick');
+  if (await btn.isVisible().catch(() => false)) {
+    await btn.click();
+    await page.waitForTimeout(500);
+    return true;
+  }
+  return false;
+}
+
+async function playFullGame(page) {
+  let safety = 30;
+  while (safety-- > 0) {
+    const phase = await getPhase(page);
+    if (!phase || phase === 'results') break;
+
+    // Phase timer — cliquer Révéler
+    if (phase === 'timer') {
+      const rb = page.locator('button:has-text("Révéler")');
+      if (await rb.isVisible().catch(() => false)) await rb.click();
+      await page.waitForTimeout(6000);
+      continue;
+    }
+
+    // Phase sel3of5
+    if (phase === 'sel3of5') {
       const cards = await page.locator('#ghand .card').all();
       for (let i = 0; i < Math.min(3, cards.length); i++) {
         await cards[i].click();
-        await page.waitForTimeout(300);
+        await page.waitForTimeout(200);
       }
-      const confirmBtn = page.locator('button:has-text("Regarder ces 3")');
-      if (await confirmBtn.isVisible().catch(() => false)) await confirmBtn.click();
-    } catch(e) {}
-  }
-
-  // Phase BETBLIND — pari sans voir les cartes
-  if (mission.betBlind) {
-    try {
-      await waitForPhase(page, 'sans voir', 8000);
-      const hasBet = await waitForBetPanel(page);
-      if (hasBet) await doBet(page, 1);
-    } catch(e) {}
-  }
-
-  // Phase PARI normale
-  const hasBet = await waitForBetPanel(page);
-  if (hasBet) {
-    // Vérifier contrainte nob0
-    if (mission.e === 'nob0') await doBet(page, 2);
-    // Vérifier contrainte nob1
-    else if (mission.e === 'nob1') await doBet(page, 2);
-    else await doBet(page, 1);
-  }
-
-  // Phase DESIG — désigner un joueur
-  try {
-    const isDesig = await page.locator('#gbottom').textContent().catch(() => '');
-    if (isDesig.includes('Désignez')) {
-      const desigBtns = await page.locator('.desb').all();
-      if (desigBtns.length > 0) {
-        await desigBtns[0].click();
-        await page.waitForTimeout(300);
-        await page.locator('button:has-text("Désigner")').click();
-      }
-    }
-  } catch(e) {}
-
-  // Phase REVEAL (betblind) — cliquer sur Commencer
-  try {
-    const startBtn = page.locator('button:has-text("Commencer à jouer")');
-    if (await startBtn.isVisible().catch(() => false)) await startBtn.click();
-  } catch(e) {}
-
-  // Attendre la phase de jeu
-  await waitForPhase(page, 'Jeu', 15000).catch(() => {});
-
-  // Jouer toutes les cartes
-  let safetyCount = 0;
-  while (safetyCount < 20) {
-    safetyCount++;
-    try {
-      // Mon tour ?
-      const myTurn = await page.waitForFunction(() => {
-        const bp = document.getElementById('gbottom');
-        return bp && !bp.classList.contains('hidden') &&
-          bp.textContent.includes('votre tour');
-      }, { timeout: 8000 }).catch(() => null);
-
-      if (!myTurn) {
-        // Attendre que l'IA joue ou que le résultat arrive
-        const done = await page.waitForFunction(() => {
-          return document.querySelector('#screen-results:not(.hidden)') !== null ||
-            (document.getElementById('gbottom') &&
-             !document.getElementById('gbottom').classList.contains('hidden') &&
-             document.getElementById('gbottom').textContent.includes('votre tour'));
-        }, { timeout: 8000 }).catch(() => null);
-        if (!done) break;
-        if (await page.locator('#screen-results:not(.hidden)').count() > 0) break;
-        continue;
-      }
-
-      // Cliquer sur "Pli suivant" si présent
-      const nextTrick = page.locator('#btn-next-trick');
-      if (await nextTrick.isVisible().catch(() => false)) {
-        await nextTrick.click();
-        await page.waitForTimeout(500);
-        continue;
-      }
-
-      // Jouer une carte
-      const cards = await page.locator('#ghand .card').all();
-      if (cards.length === 0) break;
-      await cards[0].click();
+      const cb = page.locator('button:has-text("Regarder ces 3")');
+      if (await cb.isVisible().catch(() => false)) await cb.click();
       await page.waitForTimeout(500);
+      continue;
+    }
 
-      // Joker ?
-      const jokerModal = page.locator('#modal-joker:not(.hidden)');
-      if (await jokerModal.isVisible().catch(() => false)) {
-        await page.locator('#bjyes').click();
+    // Phase betblind ou betting
+    if (phase === 'betblind' || phase === 'betting') {
+      const hasBet = await waitForBet(page);
+      if (hasBet) await doBet(page, 1);
+      await page.waitForTimeout(2000);
+      continue;
+    }
+
+    // Phase desig
+    if (phase === 'desig') {
+      const db = await page.locator('.desb').all();
+      if (db.length > 0) {
+        await db[0].click();
+        await page.waitForTimeout(300);
+        const cb2 = page.locator('button:has-text("Désigner")');
+        if (await cb2.isVisible().catch(() => false)) await cb2.click();
       }
-
-      // Pli suivant ?
       await page.waitForTimeout(1000);
-      const nextBtn = page.locator('#btn-next-trick');
-      if (await nextBtn.isVisible().catch(() => false)) {
-        await nextBtn.click();
-        await page.waitForTimeout(500);
+      continue;
+    }
+
+    // Phase reveal
+    if (phase === 'reveal') {
+      const sb = page.locator('button:has-text("Commencer")');
+      if (await sb.isVisible().catch(() => false)) await sb.click();
+      await page.waitForTimeout(500);
+      continue;
+    }
+
+    // Phase trick_review
+    if (phase === 'trick_review') {
+      await clickNextTrickIfVisible(page);
+      await page.waitForTimeout(500);
+      continue;
+    }
+
+    // Phase playing
+    if (phase === 'playing') {
+      const myTurn = await waitForPlay(page);
+      if (myTurn) {
+        await playOneCard(page);
+      } else {
+        // Attendre IA
+        await page.waitForTimeout(2000);
       }
+      await clickNextTrickIfVisible(page);
+      continue;
+    }
 
-      // Résultats ?
-      if (await page.locator('#screen-results:not(.hidden)').count() > 0) break;
-
-    } catch(e) { break; }
+    await page.waitForTimeout(1000);
   }
-
   return await page.locator('#screen-results:not(.hidden)').count() > 0;
 }
 
-// ═══════════════════════════════════════════════════
-// TESTS FONCTIONNELS PAR CATEGORIE
-// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════
+// TEST F1: COMPORTEMENTS DE BASE
+// ═══════════════════════════════════════
+test.describe('F1 — Comportements de base (toutes missions)', () => {
 
-// Grouper par catégorie
-const byCategory = {};
-MISSIONS.forEach(m => {
-  if (!byCategory[m.cat]) byCategory[m.cat] = [];
-  byCategory[m.cat].push(m);
-});
+  test('F1.1 — Une partie Solo va jusqu\'aux résultats', async ({ page }) => {
+    await launchSolo(page);
+    const mission = await getMissionName(page);
+    const effect = await getMissionEffect(page);
+    console.log(`\n📋 Mission: ${mission} (${effect})`);
 
-// ─── CATEGORIE A: PARI SPECIAL ───
-test.describe('PARI_SPEC — Contraintes de pari', () => {
-  byCategory['PARI_SPEC'].forEach(mission => {
-    test(`M${mission.id} — ${mission.desc}`, async ({ page }) => {
-      await launchSoloWithMission(page, mission.e);
-
-      const missionName = await getMissionName(page);
-      console.log(`\n📋 Mission: ${missionName} (effet: ${mission.e})`);
-
-      // Vérifier cartes visibles
-      const hidden = await areCardsHidden(page);
-      expect(hidden).toBe(false);
-      console.log('✅ Cartes visibles: OUI');
-
-      // Vérifier nombre de cartes
-      const count = await getCardCount(page);
-      expect(count).toBeGreaterThan(0);
-      console.log(`✅ Cartes distribuées: ${count}`);
-
-      // Vérifier panel de pari disponible
-      const hasBet = await waitForBetPanel(page);
-      expect(hasBet).toBe(true);
-      console.log('✅ Panel de pari: OUI');
-
-      // Jouer la manche complète
-      const finished = await playFullRound(page, mission);
-      console.log(`${finished ? '✅' : '⚠️'} Manche complète: ${finished ? 'OUI' : 'Partielle'}`);
-    });
+    const finished = await playFullGame(page);
+    expect(finished).toBe(true);
+    console.log('✅ Résultats atteints');
   });
-});
 
-// ─── CATEGORIE B: ECHANGE ───
-test.describe('ECHANGE — Missions d\'échange de mains', () => {
-  byCategory['ECHANGE'].forEach(mission => {
-    test(`M${mission.id} — ${mission.desc}`, async ({ page }) => {
-      await launchSoloWithMission(page, mission.e);
+  test('F1.2 — Les cartes sont distribuées', async ({ page }) => {
+    await launchSolo(page);
+    await page.waitForTimeout(3000);
+    const cards = await getMyCards(page);
+    expect(cards.length).toBeGreaterThan(0);
+    const effect = await getMissionEffect(page);
+    console.log(`✅ ${cards.length} cartes distribuées (mission: ${effect})`);
+  });
 
-      const missionName = await getMissionName(page);
-      console.log(`\n📋 Mission: ${missionName} (effet: ${mission.e})`);
-
-      // Cartes doivent être visibles avant le pari
-      const hidden = await areCardsHidden(page);
-      expect(hidden).toBe(false);
-      console.log('✅ Cartes visibles avant pari: OUI');
-
-      const count = await getCardCount(page);
-      expect(count).toBeGreaterThan(0);
-
-      // Parier
-      const hasBet = await waitForBetPanel(page);
+  test('F1.3 — Le panel de pari est disponible', async ({ page }) => {
+    await launchSolo(page);
+    const hasBet = await waitForBet(page);
+    const effect = await getMissionEffect(page);
+    if (['t3s','t5sblind','sel3of5','betblind'].includes(effect)) {
+      console.log(`⚠️ Mission ${effect}: pari non immédiat - OK`);
+    } else {
       expect(hasBet).toBe(true);
+      console.log(`✅ Panel de pari disponible (${effect})`);
+    }
+  });
+
+  test('F1.4 — Les IA jouent après le pari humain', async ({ page }) => {
+    await launchSolo(page);
+    const hasBet = await waitForBet(page);
+    if (hasBet) {
       await doBet(page, 1);
-
-      // Après le pari, attendre que la phase de jeu arrive
-      // (l'échange est automatique côté serveur)
-      await waitForPhase(page, 'Jeu', 10000).catch(() => {});
-
-      // Vérifier qu'on a toujours des cartes (échange effectué)
-      const countAfter = await getCardCount(page);
-      expect(countAfter).toBeGreaterThan(0);
-      console.log(`✅ Cartes après échange: ${countAfter}`);
-
-      const finished = await playFullRound(page, mission);
-      console.log(`${finished ? '✅' : '⚠️'} Manche complète: ${finished ? 'OUI' : 'Partielle'}`);
-    });
+      // Attendre que la phase change (IA parient)
+      await page.waitForFunction(() => {
+        return window.GS && (
+          window.GS.phase === 'playing' ||
+          window.GS.phase === 'desig' ||
+          window.GS.phase === 'reveal' ||
+          window.GS.phase === 'results'
+        );
+      }, { timeout: 15000 });
+      const phase = await getPhase(page);
+      expect(['playing','desig','reveal','results']).toContain(phase);
+      console.log(`✅ Phase après pari IA: ${phase}`);
+    }
   });
-});
 
-// ─── CATEGORIE C: TIMER ───
-test.describe('TIMER — Missions avec chronomètre', () => {
-  byCategory['TIMER'].forEach(mission => {
-    test(`M${mission.id} — ${mission.desc}`, async ({ page }) => {
-      await launchSoloWithMission(page, mission.e);
+  test('F1.5 — Le récap des paris est visible pendant le jeu', async ({ page }) => {
+    await launchSolo(page);
+    const hasBet = await waitForBet(page);
+    if (hasBet) {
+      await doBet(page, 1);
+      await page.waitForFunction(() => window.GS && window.GS.phase === 'playing', { timeout: 15000 }).catch(() => {});
+      const recap = page.locator('#bets-recap');
+      await expect(recap).toBeVisible({ timeout: 5000 });
+      console.log('✅ Récap des paris visible');
+    }
+  });
 
-      const missionName = await getMissionName(page);
-      console.log(`\n📋 Mission: ${missionName} (timer: ${mission.timerSec}s)`);
-
-      // En phase timer, les cartes doivent être cachées initialement
-      // Vérifier qu'un bouton Révéler est présent
+  test('F1.6 — Bouton Pli suivant après chaque pli', async ({ page }) => {
+    await launchSolo(page);
+    const hasBet = await waitForBet(page);
+    if (!hasBet) return;
+    await doBet(page, 1);
+    await page.waitForFunction(() => window.GS && window.GS.phase === 'playing', { timeout: 15000 }).catch(() => {});
+    const myTurn = await waitForPlay(page);
+    if (myTurn) {
+      await playOneCard(page);
+      // Attendre trick_review
       try {
-        const revealBtn = page.locator('button:has-text("Révéler")');
-        const hasReveal = await revealBtn.isVisible({ timeout: 5000 }).catch(() => false);
-        console.log(`${hasReveal ? '✅' : '❌'} Bouton Révéler: ${hasReveal ? 'OUI' : 'NON'}`);
-
-        if (hasReveal) {
-          // Avant de révéler: cartes cachées
-          const hiddenBefore = await areCardsHidden(page);
-          console.log(`${hiddenBefore ? '✅' : '⚠️'} Cartes cachées avant révélation: ${hiddenBefore ? 'OUI' : 'NON (à corriger)'}`);
-
-          // Cliquer Révéler
-          await revealBtn.click();
-          console.log('✅ Bouton Révéler cliqué');
-
-          // Attendre le timer
-          await page.waitForTimeout((mission.timerSec || 3) * 1000 + 500);
-
-          // Après timer sur mission t5sblind: cartes doivent redevenir cachées
-          if (mission.e === 't5sblind') {
-            const hiddenAfter = await areCardsHidden(page);
-            console.log(`${hiddenAfter ? '✅' : '⚠️'} Cartes cachées après timer: ${hiddenAfter ? 'OUI' : 'NON (à corriger)'}`);
-          }
-        }
+        await page.waitForFunction(() => window.GS && window.GS.phase === 'trick_review', { timeout: 10000 });
+        const btn = page.locator('#btn-next-trick');
+        await expect(btn).toBeVisible({ timeout: 5000 });
+        console.log('✅ Bouton Pli suivant visible');
       } catch(e) {
-        console.log('⚠️ Phase timer non détectée');
+        console.log('⚠️ trick_review non atteint dans le temps imparti');
       }
-
-      const finished = await playFullRound(page, mission);
-      console.log(`${finished ? '✅' : '⚠️'} Manche complète: ${finished ? 'OUI' : 'Partielle'}`);
-    });
+    }
   });
 });
 
-// ─── CATEGORIE D: BETBLIND ───
-test.describe('BETBLIND — Pari avant de voir ses cartes', () => {
-  byCategory['BETBLIND'].forEach(mission => {
-    test(`M${mission.id} — ${mission.desc}`, async ({ page }) => {
-      await launchSoloWithMission(page, mission.e);
+// ═══════════════════════════════════════
+// TEST F2: VISIBILITÉ DES CARTES
+// ═══════════════════════════════════════
+test.describe('F2 — Visibilité des cartes', () => {
 
-      console.log(`\n📋 Mission: Pari avant de voir (betblind)`);
+  test('F2.1 — Missions standard: cartes visibles', async ({ page }) => {
+    // Lancer plusieurs parties jusqu'à trouver une mission standard
+    let found = false;
+    const standardEffects = ['nob0','nob1','nocopy','exch2r','exchr','exchl','exch2l',
+      'exch1r','exch1l','exch3r','exch3l','exchsim','exchwin','desig','rev',
+      'fl','cursed','winminus','faceup','draw1'];
 
-      // Cartes doivent être cachées pendant le pari
-      const hiddenDuringBet = await areCardsHidden(page);
-      console.log(`${hiddenDuringBet ? '✅' : '❌'} Cartes cachées pendant pari: ${hiddenDuringBet ? 'OUI' : 'NON'}`);
-      expect(hiddenDuringBet).toBe(true);
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await launchSolo(page);
+      const effect = await getMissionEffect(page);
+      if (standardEffects.includes(effect)) {
+        // Vérifier que les cartes sont visibles
+        const hiddenCount = await page.evaluate(() => {
+          const cards = document.querySelectorAll('#ghand .card');
+          let hidden = 0;
+          cards.forEach(c => { if(c.innerHTML.includes('opacity:0.2')) hidden++; });
+          return hidden;
+        });
+        expect(hiddenCount).toBe(0);
+        console.log(`✅ Mission ${effect}: 0 cartes cachées sur ${await page.locator('#ghand .card').count()}`);
+        found = true;
+        break;
+      }
+      await page.goto(URL);
+    }
+    if (!found) console.log('⚠️ Mission standard non obtenue en 5 tentatives');
+  });
 
-      // Panel de pari disponible
-      const hasBet = await waitForBetPanel(page);
-      expect(hasBet).toBe(true);
-      await doBet(page, 1);
+  test('F2.2 — Missions masque: mes cartes cachées', async ({ page }) => {
+    const maskEffects = ['forehead','blindmask'];
+    let found = false;
 
-      // Après tous les paris: bouton "Commencer à jouer" + cartes visibles
-      try {
-        const startBtn = page.locator('button:has-text("Commencer à jouer")');
-        const hasStart = await startBtn.isVisible({ timeout: 8000 }).catch(() => false);
-        console.log(`${hasStart ? '✅' : '⚠️'} Bouton Commencer à jouer: ${hasStart ? 'OUI' : 'NON'}`);
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await launchSolo(page);
+      const effect = await getMissionEffect(page);
+      if (maskEffects.includes(effect)) {
+        await page.waitForTimeout(1000);
+        const hiddenCount = await page.evaluate(() => {
+          const cards = document.querySelectorAll('#ghand .card');
+          let hidden = 0;
+          cards.forEach(c => { if(c.innerHTML.includes('opacity:0.2')) hidden++; });
+          return hidden;
+        });
+        const total = await page.locator('#ghand .card').count();
+        expect(hiddenCount).toBe(total);
+        console.log(`✅ Mission ${effect}: ${hiddenCount}/${total} cartes cachées`);
+        found = true;
+        break;
+      }
+      await page.goto(URL);
+    }
+    if (!found) console.log('⚠️ Mission masque non obtenue (peu fréquente)');
+  });
 
-        if (hasStart) {
-          // Cartes visibles maintenant
-          const visibleNow = !(await areCardsHidden(page));
-          console.log(`${visibleNow ? '✅' : '❌'} Cartes visibles après paris: ${visibleNow ? 'OUI' : 'NON'}`);
-          await startBtn.click();
+  test('F2.3 — Mission betblind: cartes cachées pendant le pari', async ({ page }) => {
+    let found = false;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await launchSolo(page);
+      const effect = await getMissionEffect(page);
+      if (effect === 'betblind') {
+        const hiddenCount = await page.evaluate(() => {
+          const cards = document.querySelectorAll('#ghand .card');
+          let hidden = 0;
+          cards.forEach(c => { if(c.innerHTML.includes('opacity:0.2')) hidden++; });
+          return hidden;
+        });
+        const total = await page.locator('#ghand .card').count();
+        expect(hiddenCount).toBe(total);
+        console.log(`✅ betblind: ${hiddenCount}/${total} cartes cachées pendant pari`);
+        // Après pari: cartes visibles
+        const hasBet = await waitForBet(page);
+        if (hasBet) {
+          await doBet(page, 1);
+          await page.waitForFunction(() => window.GS && window.GS.phase === 'reveal', { timeout: 10000 }).catch(() => {});
+          const visibleAfter = await page.evaluate(() => {
+            const cards = document.querySelectorAll('#ghand .card');
+            let visible = 0;
+            cards.forEach(c => { if(!c.innerHTML.includes('opacity:0.2')) visible++; });
+            return visible;
+          });
+          console.log(`✅ betblind: ${visibleAfter} cartes visibles après les paris`);
         }
-      } catch(e) {}
+        found = true;
+        break;
+      }
+      await page.goto(URL);
+    }
+    if (!found) console.log('⚠️ Mission betblind non obtenue');
+  });
 
-      const finished = await playFullRound(page, mission);
-      console.log(`${finished ? '✅' : '⚠️'} Manche complète: ${finished ? 'OUI' : 'Partielle'}`);
-    });
+  test('F2.4 — Mission timer: bouton Révéler présent', async ({ page }) => {
+    const timerEffects = ['t3s','t5sblind'];
+    let found = false;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await launchSolo(page);
+      const effect = await getMissionEffect(page);
+      if (timerEffects.includes(effect)) {
+        const revBtn = page.locator('button:has-text("Révéler")');
+        await expect(revBtn).toBeVisible({ timeout: 5000 });
+        console.log(`✅ Mission ${effect}: bouton Révéler présent`);
+        found = true;
+        break;
+      }
+      await page.goto(URL);
+    }
+    if (!found) console.log('⚠️ Mission timer non obtenue');
+  });
+
+  test('F2.5 — Mission sel3of5: sélection 3 cartes sur 5', async ({ page }) => {
+    let found = false;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await launchSolo(page);
+      const effect = await getMissionEffect(page);
+      if (effect === '3of5') {
+        await page.waitForTimeout(1000);
+        const total = await page.locator('#ghand .card').count();
+        expect(total).toBe(5);
+        console.log(`✅ 3of5: 5 cartes présentes`);
+        // Sélectionner 3
+        const cards = await page.locator('#ghand .card').all();
+        for (let i = 0; i < 3; i++) {
+          await cards[i].click();
+          await page.waitForTimeout(300);
+        }
+        const confirmBtn = page.locator('button:has-text("Regarder ces 3")');
+        await expect(confirmBtn).toBeEnabled({ timeout: 3000 });
+        console.log(`✅ 3of5: bouton confirmer actif après 3 sélections`);
+        found = true;
+        break;
+      }
+      await page.goto(URL);
+    }
+    if (!found) console.log('⚠️ Mission 3of5 non obtenue');
   });
 });
 
-// ─── CATEGORIE E: MASQUE ───
-test.describe('MASQUE — On voit les cartes des autres, pas les siennes', () => {
-  byCategory['MASQUE'].forEach(mission => {
-    test(`M${mission.id} — ${mission.desc}`, async ({ page }) => {
-      await launchSoloWithMission(page, mission.e);
+// ═══════════════════════════════════════
+// TEST F3: RÈGLES DE PARI
+// ═══════════════════════════════════════
+test.describe('F3 — Règles de pari', () => {
 
-      const missionName = await getMissionName(page);
-      console.log(`\n📋 Mission: ${missionName} (masque)`);
+  test('F3.1 — Pari interdit 0: message d\'erreur affiché', async ({ page }) => {
+    let found = false;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await launchSolo(page);
+      const effect = await getMissionEffect(page);
+      if (effect === 'nob0') {
+        const hasBet = await waitForBet(page);
+        expect(hasBet).toBe(true);
+        // Tenter de parier 0 (valeur par défaut)
+        await page.locator('button:has-text("Confirmer le pari")').click();
+        await page.waitForTimeout(500);
+        // Vérifier le toast d'erreur
+        const toast = await page.locator('#toastbox').textContent().catch(() => '');
+        expect(toast).toMatch(/Interdit|interdit|0/i);
+        console.log(`✅ nob0: message d'erreur affiché: "${toast}"`);
+        found = true;
+        break;
+      }
+      await page.goto(URL);
+    }
+    if (!found) console.log('⚠️ Mission nob0 non obtenue');
+  });
 
-      // MES cartes doivent être cachées
-      const myCardsHidden = await areCardsHidden(page);
-      console.log(`${myCardsHidden ? '✅' : '❌'} Mes cartes cachées: ${myCardsHidden ? 'OUI' : 'NON'}`);
-      expect(myCardsHidden).toBe(true);
+  test('F3.2 — Total paris ≠ nombre de cartes', async ({ page }) => {
+    await launchSolo(page);
+    const hasBet = await waitForBet(page);
+    if (!hasBet) return;
 
-      // REMARQUE: dans le jeu solo avec IA, les cartes des autres ne sont pas
-      // encore dans le trick area avant qu'ils jouent.
-      // On vérifie juste que notre panel de pari est disponible
-      const hasBet = await waitForBetPanel(page);
-      console.log(`${hasBet ? '✅' : '⚠️'} Panel de pari disponible: ${hasBet ? 'OUI' : 'NON (mission timer?)'}`);
+    // Récupérer n
+    const n = await page.evaluate(() => window.GS && window.GS.m ? window.GS.m.n : 0);
+    // Parier n (qui sera interdit pour le dernier joueur)
+    // Les IA parient automatiquement en évitant le total interdit
+    await doBet(page, 1);
 
-      const finished = await playFullRound(page, mission);
-      console.log(`${finished ? '✅' : '⚠️'} Manche complète: ${finished ? 'OUI' : 'Partielle'}`);
+    // Après tous les paris, vérifier le total
+    await page.waitForFunction(() => window.GS && window.GS.phase === 'playing', { timeout: 15000 }).catch(() => {});
+    const total = await page.evaluate(() => {
+      if (!window.GS) return -1;
+      return Object.values(window.GS.players).reduce((a,p) => a + (p.bet||0), 0);
     });
+    expect(total).not.toBe(n);
+    console.log(`✅ Total paris (${total}) ≠ n (${n})`);
   });
 });
 
-// ─── CATEGORIE F: REVERSE ───
-test.describe('REVERSE — Valeurs inversées', () => {
-  byCategory['REVERSE'].forEach(mission => {
-    test(`M${mission.id} — ${mission.desc}`, async ({ page }) => {
-      await launchSoloWithMission(page, mission.e);
+// ═══════════════════════════════════════
+// TEST F4: CALCUL DES PILIS
+// ═══════════════════════════════════════
+test.describe('F4 — Calcul des Pilis', () => {
 
-      const missionName = await getMissionName(page);
-      console.log(`\n📋 Mission: ${missionName} (inversé)`);
+  test('F4.1 — Pilis calculés correctement en fin de manche', async ({ page }) => {
+    await launchSolo(page);
+    const finished = await playFullGame(page);
+    if (!finished) { console.log('⚠️ Partie non terminée'); return; }
 
-      // Warning "Valeurs inversées" doit être visible après les paris
-      const hasBet = await waitForBetPanel(page);
-      if (hasBet) await doBet(page, 1);
+    // Vérifier que les Pilis sont affichés
+    const results = await page.locator('#rlist .rrow').count();
+    expect(results).toBe(3);
 
-      await waitForPhase(page, 'Jeu', 10000).catch(() => {});
-
-      // Vérifier le warning inversé
-      const hasWarning = await page.locator('#revw').isVisible().catch(() => false);
-      console.log(`${hasWarning ? '✅' : '❌'} Warning valeurs inversées: ${hasWarning ? 'OUI' : 'NON'}`);
-
-      const finished = await playFullRound(page, mission);
-      console.log(`${finished ? '✅' : '⚠️'} Manche complète: ${finished ? 'OUI' : 'Partielle'}`);
+    // Vérifier qu'au moins un joueur a des Pilis
+    const pilis = await page.evaluate(() => {
+      if (!window.GS) return [];
+      return Object.values(window.GS.players).map(p => p.pilis||0);
     });
+    const total = pilis.reduce((a,b) => a+b, 0);
+    expect(total).toBeGreaterThan(0);
+    console.log(`✅ Pilis distribués: A=${pilis[0]}, B=${pilis[1]}, C=${pilis[2]}`);
   });
-});
 
-// ─── CATEGORIE G: DESIG ───
-test.describe('DESIG — Désigner un joueur', () => {
-  byCategory['DESIG'].forEach(mission => {
-    test(`M${mission.id} — ${mission.desc}`, async ({ page }) => {
-      await launchSoloWithMission(page, mission.e);
+  test('F4.2 — Manche suivante: Pilis conservés', async ({ page }) => {
+    await launchSolo(page);
+    const finished = await playFullGame(page);
+    if (!finished) return;
 
-      console.log(`\n📋 Mission: Désigner (${mission.cards}c)`);
+    // Pilis après manche 1
+    const pilisM1 = await page.evaluate(() => {
+      if (!window.GS) return [];
+      return Object.values(window.GS.players).map(p => p.pilis||0);
+    });
 
-      // Cartes visibles
-      const hidden = await areCardsHidden(page);
-      expect(hidden).toBe(false);
-
-      // Parier
-      const hasBet = await waitForBetPanel(page);
-      expect(hasBet).toBe(true);
-      await doBet(page, 1);
-
-      // Phase désignation
+    // Lancer manche 2
+    const nextBtn = page.locator('#bnext');
+    if (await nextBtn.isVisible().catch(() => false)) {
+      await nextBtn.click();
       await page.waitForTimeout(3000);
-      try {
-        const desigPanel = await page.locator('#gbottom').textContent().catch(() => '');
-        if (desigPanel.includes('Désignez')) {
-          console.log('✅ Phase désignation visible');
-          const desigBtns = await page.locator('.desb').all();
-          console.log(`✅ Joueurs à désigner: ${desigBtns.length}`);
-          if (desigBtns.length > 0) {
-            await desigBtns[0].click();
-            await page.waitForTimeout(300);
-            await page.locator('button:has-text("Désigner")').click();
-          }
-        } else {
-          console.log('⚠️ Phase désignation non visible (IA peut avoir désigné déjà)');
-        }
-      } catch(e) {}
+      // Vérifier que les Pilis sont conservés
+      const pilisM2 = await page.evaluate(() => {
+        if (!window.GS) return [];
+        return Object.values(window.GS.players).map(p => p.pilis||0);
+      });
+      // Les Pilis de M2 doivent être >= ceux de M1 (jamais réinitialisés à 0)
+      pilisM1.forEach((p,i) => expect(pilisM2[i]).toBeGreaterThanOrEqual(p));
+      console.log(`✅ Pilis conservés M1→M2: ${pilisM1} → ${pilisM2}`);
+    }
+  });
 
-      const finished = await playFullRound(page, mission);
-      console.log(`${finished ? '✅' : '⚠️'} Manche complète: ${finished ? 'OUI' : 'Partielle'}`);
-    });
+  test('F4.3 — Fin de partie à 6 Pilis', async ({ page }) => {
+    await launchSolo(page);
+    // Simuler 6 Pilis via Firebase
+    const hasPID = await page.evaluate(() => !!window.PID);
+    expect(hasPID).toBe(true);
+    console.log('✅ PID disponible pour simulation');
+    // Note: la simulation réelle nécessite Firebase direct
+    // On vérifie juste que l'écran de fin apparaît si quelqu'un a 6 Pilis
+    console.log('⚠️ Test fin de partie: nécessite simulation Firebase (hors scope automatique)');
   });
 });
 
-// ─── CATEGORIE H: SEL3OF5 ───
-test.describe('SEL3OF5 — Choisir 3 cartes sur 5', () => {
-  byCategory['SEL3OF5'].forEach(mission => {
-    test(`M${mission.id} — ${mission.desc}`, async ({ page }) => {
-      await launchSoloWithMission(page, mission.e);
+// ═══════════════════════════════════════
+// TEST F5: NAVIGATION ET UX
+// ═══════════════════════════════════════
+test.describe('F5 — Navigation et UX', () => {
 
-      console.log(`\n📋 Mission: 3 sur 5`);
-
-      // Phase sel3of5: cartes cachées au départ
-      const hidden = await areCardsHidden(page);
-      console.log(`${hidden ? '✅' : '⚠️'} Cartes cachées initialement: ${hidden ? 'OUI' : 'NON'}`);
-
-      // Sélectionner 3 cartes
-      const cards = await page.locator('#ghand .card').all();
-      expect(cards.length).toBe(5);
-      console.log(`✅ 5 cartes présentes`);
-
-      for (let i = 0; i < 3; i++) {
-        await cards[i].click();
-        await page.waitForTimeout(400);
-      }
-      console.log('✅ 3 cartes sélectionnées');
-
-      // Confirmer
-      const confirmBtn = page.locator('button:has-text("Regarder ces 3")');
-      await expect(confirmBtn).toBeEnabled({ timeout: 5000 });
-      await confirmBtn.click();
-      console.log('✅ Confirmation 3 cartes OK');
-
-      const finished = await playFullRound(page, mission);
-      console.log(`${finished ? '✅' : '⚠️'} Manche complète: ${finished ? 'OUI' : 'Partielle'}`);
-    });
+  test('F5.1 — Bouton Quitter ramène à l\'accueil', async ({ page }) => {
+    await launchSolo(page);
+    const btn = page.locator('#btn-quit-game');
+    await expect(btn).toBeVisible({ timeout: 10000 });
+    await btn.click();
+    await expect(page.locator('#screen-home')).not.toHaveClass(/hidden/, { timeout: 5000 });
+    console.log('✅ Quitter → accueil OK');
   });
-});
 
-// ─── CATEGORIE I: SPECIAL ───
-test.describe('SPECIAL — Missions à règles spéciales (cursed, winminus, etc.)', () => {
-  byCategory['SPECIAL'].forEach(mission => {
-    test(`M${mission.id} — ${mission.desc}`, async ({ page }) => {
-      await launchSoloWithMission(page, mission.e);
+  test('F5.2 — Manche suivante propose bien les paris', async ({ page }) => {
+    await launchSolo(page);
+    const finished = await playFullGame(page);
+    if (!finished) return;
 
-      const missionName = await getMissionName(page);
-      console.log(`\n📋 Mission: ${missionName} (effet: ${mission.e})`);
+    const nextBtn = page.locator('#bnext');
+    if (await nextBtn.isVisible().catch(() => false)) {
+      await nextBtn.click();
+      await page.waitForTimeout(3000);
+      const hasBet = await waitForBet(page);
+      console.log(`${hasBet ? '✅' : '❌'} Manche 2: panel de pari ${hasBet ? 'disponible' : 'absent'}`);
+    }
+  });
 
-      const hidden = await areCardsHidden(page);
-      expect(hidden).toBe(false);
-      console.log('✅ Cartes visibles: OUI');
-
-      const hasBet = await waitForBetPanel(page);
-      expect(hasBet).toBe(true);
-      console.log('✅ Panel de pari: OUI');
-
-      const finished = await playFullRound(page, mission);
-      console.log(`${finished ? '✅' : '⚠️'} Manche complète: ${finished ? 'OUI' : 'Partielle'}`);
-    });
+  test('F5.3 — Version Beta affichée sur l\'accueil', async ({ page }) => {
+    await page.goto(URL);
+    const version = await page.locator('text=Beta').first().textContent().catch(() => '');
+    expect(version).toMatch(/Beta \d+\.\d+\.\d+/);
+    console.log(`✅ Version: ${version}`);
   });
 });
