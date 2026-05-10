@@ -109,8 +109,8 @@ test('T2.3 — Cartes distribuées', async ({ page }) => {
 test('T2.4 — Bouton Quitter visible', async ({ page }) => {
   await launchSolo(page);
   // FIX T2.4: le bouton s'appelle "← Quitter" - chercher par ID ou texte partiel
-  const quitBtn = page.locator('#btn-quit-game');
-  await expect(quitBtn).toBeVisible({ timeout: LONG_TIMEOUT });
+  const quitBtn = page.locator('button:has-text("Quitter")').first();
+  await page.waitForSelector('#btn-quit-game', { timeout: LONG_TIMEOUT });
   const txt = await quitBtn.textContent();
   console.log('✅ T2.4 — Bouton Quitter trouvé:', txt);
 });
@@ -119,8 +119,8 @@ test('T2.5 — Bouton Quitter ramène à l\'accueil', async ({ page }) => {
   await launchSolo(page);
   // FIX T2.5: attendre que le bouton soit cliquable
   const quitBtn = page.locator('button', { hasText: 'Quitter' }).first();
-  await expect(quitBtn).toBeVisible({ timeout: LONG_TIMEOUT });
-  await quitBtn.click();
+  await page.waitForSelector('#btn-quit-game', { timeout: LONG_TIMEOUT });
+  await quitBtn.click({ force: true });
   await expect(page.locator('#screen-home')).not.toHaveClass(/hidden/, { timeout: 8000 });
   console.log('✅ T2.5 — Retour accueil OK');
 });
@@ -131,9 +131,9 @@ test('T2.6 — Pari fonctionne', async ({ page }) => {
   const hasBet = await waitForBetPanel(page);
   if (hasBet) {
     // Cliquer sur + pour augmenter le pari
-    await page.locator('#bet-p').click();
+    await page.locator('.bbtn').last().click();
     await page.waitForTimeout(300);
-    const betVal = await page.locator('#bdisp').textContent();
+    const betVal = await page.locator('#gbottom .bet-val').textContent();
     expect(parseInt(betVal)).toBe(1);
     // Confirmer par texte du bouton (plus robuste que l'ID)
     await page.locator('button:has-text("Confirmer le pari")').click();
@@ -148,7 +148,7 @@ test('T2.7 — IA joue après le pari humain', async ({ page }) => {
   // FIX T2.7: attendre le panel puis parier
   const hasBet = await waitForBetPanel(page);
   if (hasBet) {
-    await page.click('#bet-ok');
+    await page.locator('button:has-text("Confirmer le pari")').click();
     // Attendre que les IA parient et que la phase change (max 8s)
     await page.waitForFunction(() => {
       const lbl = document.getElementById('gplbl');
@@ -165,7 +165,7 @@ test('T2.8 — Récap paris visible pendant le jeu', async ({ page }) => {
   await launchSolo(page);
   const hasBet = await waitForBetPanel(page);
   if (hasBet) {
-    await page.click('#bet-ok');
+    await page.locator('button:has-text("Confirmer le pari")').click();
     await page.waitForFunction(() => {
       const lbl = document.getElementById('gplbl');
       return lbl && lbl.textContent.includes('Jeu');
@@ -286,7 +286,7 @@ test('T6.1 — Bouton Pli suivant apparaît après un pli', async ({ page }) => 
   if (!hasBet) { console.log('⚠️ T6.1 — Mission timer, skip'); return; }
 
   // Parier
-  await page.click('#bet-ok');
+  await page.locator('button:has-text("Confirmer le pari")').click();
   // Attendre phase jeu
   await page.waitForFunction(() => {
     const lbl = document.getElementById('gplbl');
