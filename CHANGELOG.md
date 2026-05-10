@@ -1,5 +1,11 @@
 # 🌶️ Pili Pili — Changelog
 
+## Beta 1.1.7 — 2026-05-10
+### ✅ Anomalies corrigées
+- ANO-030 — Paris manche 2+ : rotation circulaire du cp (boucle linéaire → modulo)
+### 🟡 Évolutions
+- EVO-009 — Missions échange N cartes : sélection manuelle des cartes à donner (nouvelle phase exchsel)
+
 ## Beta 1.1.6 — 2026-05-10
 ### ✅ Anomalies corrigées
 - ANO-025 — revblind : cartes visibles pendant les paris (retrait de revblind de la condition hidH betting)

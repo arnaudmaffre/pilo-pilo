@@ -68,7 +68,7 @@ async function waitForBet(page) {
 async function doBet(page, val) {
   val = val || 1;
   for (let i = 0; i < val; i++) {
-    await page.locator('#gbottom button:last-of-type').click();
+    await page.locator('#bp').click();
     await page.waitForTimeout(200);
   }
   await page.locator('button:has-text("Confirmer le pari")').click();
@@ -115,11 +115,39 @@ async function playFullGame(page) {
     const phase = await getPhase(page);
     if (!phase || phase === 'results') break;
 
-    // Phase timer — cliquer Révéler
+    // Phase exchsel — sélectionner les cartes à donner
+    if (phase === 'exchsel') {
+      const alreadyDone = await page.evaluate(() => {
+        if (!window.GS || !window.PID) return false;
+        const p = window.GS.players[window.PID];
+        return !!(p && p.exchCards);
+      });
+      if (!alreadyDone) {
+        const n = await page.evaluate(() => {
+          if (!window.GS || !window.GS.m) return 2;
+          const e = window.GS.m.e;
+          if (e === 'exch1r' || e === 'exch1l') return 1;
+          if (e === 'exch3r' || e === 'exch3l') return 3;
+          return 2;
+        });
+        const cards = await page.locator('#ghand .card').all();
+        for (let i = 0; i < Math.min(n, cards.length); i++) {
+          await cards[i].click();
+          await page.waitForTimeout(200);
+        }
+        const confirmBtn = page.locator('#bexch');
+        if (await confirmBtn.isVisible().catch(() => false)) await confirmBtn.click();
+      }
+      await page.waitForFunction(() => window.GS && window.GS.phase !== 'exchsel', { timeout: 8000 }).catch(() => {});
+      continue;
+    }
+
+    // Phase timer — cliquer Révéler puis attendre la transition Firebase
     if (phase === 'timer') {
-      const rb = page.locator('button:has-text("Révéler")');
+      const rb = page.locator('#btn-reveal-cards');
+      await rb.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
       if (await rb.isVisible().catch(() => false)) await rb.click();
-      await page.waitForTimeout(6000);
+      await page.waitForFunction(() => window.GS && window.GS.phase !== 'timer', { timeout: 10000 }).catch(() => {});
       continue;
     }
 

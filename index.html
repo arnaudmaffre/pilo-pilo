@@ -101,7 +101,7 @@ input[type=range]{width:100%;accent-color:#ffd166;}
   <div class="logo-emoji">🌶️</div>
   <div class="logo-title">PILI PILI</div>
   <div class="logo-sub">LE JEU DE PLIS ET DE PARIS</div>
-  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.6</div>
+  <div style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;">Beta 1.1.7</div>
   <div id="fb-status" class="status-box s-wait">⏳ Initialisation...</div>
   <div class="form-group">
     <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
@@ -339,6 +339,7 @@ function ev(c,rev){if(!c)return 0;if(c.j)return rev?-1:57;return rev?56-c.v:c.v;
 function spl(gs){return Object.values(gs.players||{}).sort(function(a,b){return(a.o||0)-(b.o||0);});}
 function gh(p){if(!p||!p.hand)return[];if(p.hand._x)return[];return Array.isArray(p.hand)?p.hand:Object.values(p.hand).filter(function(x){return x&&!x._x;});}
 function clnT(o){if(!o)return{};var r={};Object.keys(o).forEach(function(k){if(k!=='_x')r[k]=o[k];});return r;}
+function exchSelN(e){if(e==='exch1r'||e==='exch1l')return 1;if(e==='exch3r'||e==='exch3l')return 3;return 2;}
 function genCode(){return Math.random().toString(36).substr(2,4).toUpperCase();}
 function genSolo(){return'SL'+Math.random().toString(36).substr(2,2).toUpperCase();}
 function getName(){return document.getElementById('home-name').value.trim();}
@@ -346,9 +347,9 @@ function initPh(m){if(m.e==='t3s'||m.e==='t5sblind')return'timer';if(m.e==='3of5
 function postBet(m){
   if(m.e==='desig')return'desig';
   if(m.e==='betblind')return'reveal';
-  // ANO-029: missions d'échange — on passe par une phase d'échange
-  var exchEffects=['exch2r','exch2l','exchr','exchl','exch1r','exch1l','exch3r','exch3l','exchsim'];
-  if(exchEffects.indexOf(m.e)>=0)return'playing'; // échange géré côté serveur dans applyExchange
+  // Missions à sélection : le joueur choisit ses cartes avant l'échange
+  var selEffects=['exch2r','exch2l','exch1r','exch1l','exch3r','exch3l'];
+  if(selEffects.indexOf(m.e)>=0)return'exchsel';
   return'playing';
 }
 
@@ -466,6 +467,18 @@ function subRoom(code){
         },600+Math.floor(Math.random()*300));
       }
     }
+    // exchsel : déclencher l'IA pour le premier joueur IA sans sélection
+    if(HOST&&data.phase==='exchsel'&&!BUSY){
+      var firstUnsub=Object.values(data.players).find(function(p){return p.isAI&&!p.exchCards;});
+      if(firstUnsub){
+        clearTimeout(window._ait);
+        BUSY=false;
+        window._ait=setTimeout(function(){
+          BUSY=false;
+          aiTurn(data,firstUnsub.id);
+        },600+Math.floor(Math.random()*300));
+      }
+    }
     if(data.phase==='timer'&&data.timerEnd){
       // EVO-002: show reveal button, then auto-start timer on click
       var timerDiv=document.getElementById('gtimer');
@@ -573,7 +586,7 @@ function rndrGame(gs){
   var players=spl(gs),m=gs.m,rev=m.e==='rev'||m.e==='revblind';
   document.getElementById('gmyname').textContent=me.name;
   document.getElementById('gmypili').innerHTML=ptk(me.pilis||0);
-  var lbs={betting:'Paris',playing:'Jeu',sel3of5:'3 cartes à voir',desig:'Désignez',timer:'Mémorisez !',betblind:'Pariez sans voir',reveal:'Découvrez votre main',results:'Résultats',trick_review:'Résultat du pli'};
+  var lbs={betting:'Paris',playing:'Jeu',sel3of5:'3 cartes à voir',desig:'Désignez',timer:'Mémorisez !',betblind:'Pariez sans voir',reveal:'Découvrez votre main',results:'Résultats',trick_review:'Résultat du pli',exchsel:'Échange — choisissez vos cartes'};
   document.getElementById('gplbl').textContent='Manche '+(gs.round||1)+' · '+(lbs[gs.phase]||gs.phase);
   var md=document.getElementById('gmission');
   md.className='mission-card '+(m.x?'mx':'mn');
@@ -641,7 +654,8 @@ function rndrGame(gs){
   var hand=gh(me);
   // BUG-001 FIX: forehead = mes cartes cachées pendant paris ET jeu
   var hidH=((['t5sblind','blindmask','forehead'].indexOf(m.e)>=0&&(gs.phase==='playing'||gs.phase==='betting'||gs.phase==='betblind'))||(m.e==='revblind'&&gs.phase==='playing'))||(!window.TMRREV&&gs.phase==='timer')||(m.e==='betblind'&&(gs.phase==='betblind'||gs.phase==='betting'));
-  document.getElementById('ghlbl').textContent='Votre main ('+hand.length+'c)'+(gs.phase==='sel3of5'?' — Sélectionnez 3 cartes':'');
+  var exchSelLbl=gs.phase==='exchsel'&&!me.exchCards?' — Choisissez '+exchSelN(m.e)+' carte'+(exchSelN(m.e)>1?'s':'')+'':'';
+  document.getElementById('ghlbl').textContent='Votre main ('+hand.length+'c)'+(gs.phase==='sel3of5'?' — Sélectionnez 3 cartes':exchSelLbl);
   var canPlay=gs.phase==='playing'&&gs.cp===PID;
   // BUG-003 FIX: faceup — afficher cartes de tous les joueurs
   var faceupArea=document.getElementById('faceup-area');
@@ -686,6 +700,8 @@ function rndrGame(gs){
 
   document.getElementById('ghand').innerHTML=(gs.phase==='sel3of5')
     ?hand.map(function(c){var s=SEL.indexOf(c.id)>=0;return mkCard(c,{hid:!s,sel:s,oc:'selCard('+c.id+')'});}).join('')
+    :(gs.phase==='exchsel'&&!me.exchCards)
+    ?hand.map(function(c){var s=SEL.indexOf(c.id)>=0;return mkCard(c,{sel:s,oc:'selExch('+c.id+')'});}).join('')
     :hand.map(function(c){return mkCard(c,{hid:hidH,oc:canPlay?'clickCard('+c.id+')':''});}).join('');
   rndrPanel(gs,me,players);
 }
@@ -764,6 +780,27 @@ function rndrPanel(gs,me,players){
       }
       if(bnt){bnt.addEventListener('click',doNextTrick);bnt.addEventListener('touchend',function(e){e.preventDefault();doNextTrick();},false);}
     }
+  }else if(ph==='exchsel'){
+    bp.classList.remove('hidden');
+    if(!me.exchCards){
+      var needed=exchSelN(m.e);
+      var dir=['exch1r','exch2r','exch3r'].indexOf(m.e)>=0?'droite':'gauche';
+      var ok=SEL.length===needed;
+      bp.innerHTML='<div style="text-align:center;color:rgba(255,255,255,0.7);font-size:13px;margin-bottom:10px">'+
+        '🤝 '+SEL.length+'/'+needed+' carte'+(needed>1?'s':'')+' à donner à '+dir+'</div>'+
+        '<button class="btn btn-gold" id="bexch" type="button"'+(ok?'':' disabled style="opacity:0.4"')+'>✅ Confirmer l\'échange</button>';
+      if(ok){
+        var bexch=document.getElementById('bexch');
+        function doExch(){
+          var selCards=SEL.map(function(id){return gh(me).find(function(c){return c.id===id;});}).filter(Boolean);
+          act({type:'exchsel',cards:selCards});SEL=[];
+        }
+        bexch.addEventListener('click',doExch);
+        bexch.addEventListener('touchend',function(e){e.preventDefault();doExch();},false);
+      }
+    }else{
+      bp.innerHTML='<div class="wmsg">✅ En attente des autres joueurs...</div>';
+    }
   }else if(ph==='playing'&&!imt){
     bp.classList.remove('hidden');
     var cur=gs.players[gs.cp];
@@ -786,6 +823,7 @@ function doBet(){
 }
 
 function selCard(id){var i=SEL.indexOf(id);if(i>=0)SEL.splice(i,1);else if(SEL.length<3)SEL.push(id);if(GS)rndrGame(GS);}
+function selExch(id){var max=GS&&GS.m?exchSelN(GS.m.e):2;var i=SEL.indexOf(id);if(i>=0)SEL.splice(i,1);else if(SEL.length<max)SEL.push(id);if(GS)rndrGame(GS);}
 function clickCard(id){
   if(!GS||GS.cp!==PID||GS.phase!=='playing')return;
   var hand=gh(GS.players[PID]);var c=hand.find(function(x){return x.id===id;});if(!c)return;
@@ -857,6 +895,27 @@ function doNewGame(){
 // ════════════════════════════════════════════════════
 // ANO-029: ÉCHANGE DE MAINS
 // ════════════════════════════════════════════════════
+function applyExchangeFromSel(effect,pl,players){
+  var n=pl.length;
+  var isRight=['exch1r','exch2r','exch3r'].indexOf(effect)>=0;
+  var toGive={},keep={};
+  pl.forEach(function(p){
+    var hand=gh(players[p.id]).slice();
+    var ec=players[p.id].exchCards;
+    var given=ec?(Array.isArray(ec)?ec:Object.values(ec).filter(function(x){return x&&x.id;})):[];
+    var givenIds=given.map(function(c){return c.id;});
+    toGive[p.id]=given;
+    keep[p.id]=hand.filter(function(c){return givenIds.indexOf(c.id)<0;});
+  });
+  var newHands={};
+  pl.forEach(function(p,i){
+    // isRight: je reçois de mon voisin gauche (i-1) ; isLeft: je reçois de mon voisin droit (i+1)
+    var srcIdx=isRight?(i-1+n)%n:(i+1)%n;
+    newHands[p.id]=keep[p.id].concat(toGive[pl[srcIdx].id]);
+  });
+  return newHands;
+}
+
 function applyExchange(effect, pl, players){
   var newHands={};
   var n=pl.length;
@@ -930,13 +989,12 @@ function act(action){
     if(action.type==='bet'&&(ph==='betting'||ph==='betblind')){
       upd['rooms/'+ROOM+'/players/'+who+'/bet']=action.v;
       var idx=pl.findIndex(function(p){return p.id===who;});
-      var nb=null;for(var i=idx+1;i<pl.length;i++){if(pl[i].bet===null||pl[i].bet===undefined){nb=pl[i];break;}}
+      var nb=null;for(var k=1;k<np;k++){var ni=(idx+k)%np;if(pl[ni].bet===null||pl[ni].bet===undefined){nb=pl[ni];break;}}
       if(nb){upd['rooms/'+ROOM+'/cp']=nb.id;}
       else{
         var nph=postBet(m);
-        // ANO-029 FIX: appliquer l'échange de mains avant de jouer
-        var exchEffects=['exch2r','exch2l','exchr','exchl','exch1r','exch1l','exch3r','exch3l'];
-        if(exchEffects.indexOf(m.e)>=0){
+        // Échange automatique uniquement pour main entière (exchr/exchl)
+        if(m.e==='exchr'||m.e==='exchl'){
           var newHands=applyExchange(m.e,pl,players);
           pl.forEach(function(p){
             if(newHands[p.id])upd['rooms/'+ROOM+'/players/'+p.id+'/hand']=newHands[p.id];
@@ -975,6 +1033,23 @@ function act(action){
       upd['rooms/'+ROOM+'/players/'+who+'/rc']=action.cards;
       var updP=JSON.parse(JSON.stringify(players));updP[who].rc=action.cards;
       if(Object.values(updP).every(function(p){return p.rc&&p.rc.length===3;})){upd['rooms/'+ROOM+'/phase']='betting';upd['rooms/'+ROOM+'/cp']=pl[dealer%np].id;}
+    }
+    if(action.type==='exchsel'&&ph==='exchsel'){
+      upd['rooms/'+ROOM+'/players/'+who+'/exchCards']=action.cards;
+      var updP2=JSON.parse(JSON.stringify(players));updP2[who].exchCards=action.cards;
+      var allExch=pl.every(function(p){
+        var ec=updP2[p.id].exchCards;
+        return ec&&(Array.isArray(ec)?ec.length:Object.values(ec).filter(function(x){return x&&x.id;}).length)>0;
+      });
+      if(allExch){
+        var exHands=applyExchangeFromSel(m.e,pl,updP2);
+        pl.forEach(function(p){
+          upd['rooms/'+ROOM+'/players/'+p.id+'/hand']=exHands[p.id];
+          upd['rooms/'+ROOM+'/players/'+p.id+'/exchCards']=null;
+        });
+        upd['rooms/'+ROOM+'/phase']='playing';
+        upd['rooms/'+ROOM+'/cp']=pl[dealer%np].id;
+      }
     }
     if(action.type==='desig'&&ph==='desig'){
       upd['rooms/'+ROOM+'/players/'+who+'/dt']=action.target;
@@ -1107,6 +1182,11 @@ function aiTurn(gs,aiId){
   }else if(ph==='desig'){
     var oth=pl.filter(function(p){return p.id!==aiId;});
     if(oth.length)act({type:'desig',target:oth[0].id,pid:aiId});
+  }else if(ph==='exchsel'){
+    if(!ai.exchCards){
+      var nc=exchSelN(m.e);
+      act({type:'exchsel',cards:hand.slice(0,nc),pid:aiId});
+    }
   }else if(ph==='reveal'&&HOST){
     var pll=spl(gs);DB.ref('rooms/'+ROOM).update({phase:'playing',cp:pll[gs.dealer%pll.length].id});
   }
