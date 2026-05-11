@@ -1,5 +1,9 @@
 # 🌶️ Pili Pili — Changelog
 
+## Beta 1.2.8 — 2026-05-11
+### ✅ Anomalies corrigées
+- ANO-029 — exch3l/exch3r (et toutes missions exchsel) : IA bloquée en phase d'échange. Cause : cp=null pendant exchsel, le re-check post-act ne couvrait pas cette phase. Fix : re-trigger dans le .then() de act() + stratégie bet-aware (bet=0 → meilleures cartes, bet>0 → moins bonnes).
+
 ## Beta 1.2.7 — 2026-05-11
 ### ✅ Anomalies corrigées
 - ANO-037 — exchwin : refonte complète (EVO-015) — l'échange était automatique (premier card swap brutal). Désormais interactif : le gagnant choisit cible + carte à donner, la cible choisit sa carte en retour. Badge 🎁 sur la carte reçue.

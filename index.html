@@ -143,7 +143,7 @@ input[type=range]{width:100%;accent-color:#ffd166;}
   <div class="logo-emoji">🌶️</div>
   <div class="logo-title">PILI PILI</div>
   <div class="logo-sub">LE JEU DE PLIS ET DE PARIS</div>
-  <div id="ver-lbl" style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;cursor:pointer;user-select:none;">Beta 1.2.7</div>
+  <div id="ver-lbl" style="font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:2px;margin-top:-12px;margin-bottom:8px;cursor:pointer;user-select:none;">Beta 1.2.8</div>
   <div id="fb-status" class="status-box s-wait">⏳ Initialisation...</div>
   <div class="form-group">
     <input id="home-name" class="input-field" placeholder="Votre prénom..." maxlength="20" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false"/>
@@ -1440,6 +1440,14 @@ function act(action){
         window._ait2=setTimeout(function(){BUSY=false;aiTurn(GS,GS.cp);},300);
       }
     }
+    // ANO-029 FIX: exchsel — cp=null, le re-check cp-based ne couvre pas cette phase
+    if(HOST&&GS&&GS.phase==='exchsel'){
+      var aiNoCard=Object.values(GS.players).find(function(p){return p.isAI&&!p.exchCards;});
+      if(aiNoCard){
+        clearTimeout(window._ait2);
+        window._ait2=setTimeout(function(){BUSY=false;aiTurn(GS,aiNoCard.id);},300);
+      }
+    }
   })
   .catch(function(e){toast('Erreur: '+e.message);lg('ERR','act() Firebase',{msg:e.message,code:e.code});BUSY=false;});
 }
@@ -1485,7 +1493,10 @@ function aiTurn(gs,aiId){
   }else if(ph==='exchsel'){
     if(!ai.exchCards){
       var nc=exchSelN(m.e);
-      act({type:'exchsel',cards:hand.slice(0,nc),pid:aiId});
+      var hSorted=hand.slice().sort(function(a,b){return ev(a,rev)-ev(b,rev);});
+      // bet=0 → donner les meilleures cartes ; bet>0 → donner les moins bonnes
+      var aiExchCards=(ai.bet||0)===0?hSorted.slice(hSorted.length-nc):hSorted.slice(0,nc);
+      act({type:'exchsel',cards:aiExchCards,pid:aiId});
     }
   }else if(ph==='exchwin_give'&&gs.cp===aiId){
     var ewOthersAI=pl.filter(function(p){return p.id!==aiId;});
