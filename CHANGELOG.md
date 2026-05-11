@@ -1,5 +1,14 @@
 # 🌶️ Pili Pili — Changelog
 
+## Beta 1.2.7 — 2026-05-11
+### ✅ Anomalies corrigées
+- ANO-037 — exchwin : refonte complète (EVO-015) — l'échange était automatique (premier card swap brutal). Désormais interactif : le gagnant choisit cible + carte à donner, la cible choisit sa carte en retour. Badge 🎁 sur la carte reçue.
+### 🟡 Évolutions
+- EVO-014 — Filtre winminus : mission "Pari réussi = −Pili" masquée si totalPilis < 4 (inutile en début de partie)
+- EVO-015 — exchwin interactif : phases exchwin_give / exchwin_recv, échange bidirectionnel, triggers IA
+- EVO-016 — Triggers IA exchwin : handlers aiTurn pour exchwin_give et exchwin_recv (stratégie : bet=0 → donner la plus forte, bet>0 → donner la plus faible)
+- EVO-017 — Bouton ⏭ "Passer la mission" : hôte uniquement, double-tap pour confirmer, appelle doNextRound() sans scoring
+
 ## Beta 1.2.6 — 2026-05-11
 ### ✅ Anomalies corrigées
 - ANO-035 — Collisions de codes de salle : `doCreate()` et `doSolo()` écrasaient silencieusement une salle existante si le code généré était déjà pris. Ajout d'une vérification Firebase avant le `.set()`, avec retry automatique (max 5 tentatives) et log WRN en cas de collision détectée.

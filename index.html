@@ -76,6 +76,9 @@ body{background:#0d1b2a;font-family:'Nunito',sans-serif;color:#fff;min-height:10
 .hand-area{margin-bottom:16px;}
 .hlbl{font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:10px;}
 .hcards{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.card-badge{position:absolute;top:-6px;right:-6px;font-size:14px;pointer-events:none;}
+.btn-skip{position:fixed;top:14px;right:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.4);font-size:18px;width:36px;height:36px;border-radius:50%;cursor:pointer;z-index:200;display:flex;align-items:center;justify-content:center;transition:background 0.2s;}
+.btn-skip.confirm{background:rgba(230,57,70,0.3);border-color:#e63946;color:#e63946;}
 .card{border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;user-select:none;flex-shrink:0;touch-action:manipulation;box-shadow:0 2px 4px rgba(0,0,0,.55),0 6px 14px rgba(0,0,0,.4),0 12px 24px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.12);transition:transform .12s ease,box-shadow .12s ease;}
 .card.sel{transform:translateY(-10px);box-shadow:0 0 0 2px #ffd166,0 0 18px rgba(255,209,102,.7),0 0 36px rgba(255,209,102,.32),0 12px 28px rgba(0,0,0,.5)!important;}
 .card:active:not(.sel){transform:scale(0.94);}
@@ -281,6 +284,8 @@ var JKPND = null;
 var TMRIV = null;
 var TMRREV= false; // true pendant la fenêtre de révélation timer (EVO-002)
 var SEL   = [];
+var EXCHWIN_TGT = null;
+var SKIP_CNF    = 0;
 var BETV  = 0;
 var BUSY  = false;
 var PC    = ['#e63946','#457b9d','#2a9d8f','#e9c46a','#f4a261','#a8dadc','#6d6875','#b5838d'];
@@ -440,9 +445,14 @@ function ev(c,rev){if(!c)return 0;if(c.j)return rev?-1:57;return rev?56-c.v:c.v;
 function spl(gs){return Object.values(gs.players||{}).sort(function(a,b){return(a.o||0)-(b.o||0);});}
 function gh(p){if(!p||!p.hand)return[];if(p.hand._x)return[];return Array.isArray(p.hand)?p.hand:Object.values(p.hand).filter(function(x){return x&&!x._x;});}
 function clnT(o){if(!o)return{};var r={};Object.keys(o).forEach(function(k){if(k!=='_x')r[k]=o[k];});return r;}
-function exchSelN(e){if(e==='exch1r'||e==='exch1l')return 1;if(e==='exch3r'||e==='exch3l')return 3;return 2;}
+function exchSelN(e){if(e==='exchwin')return 1;if(e==='exch1r'||e==='exch1l')return 1;if(e==='exch3r'||e==='exch3l')return 3;return 2;}
 function genCode(){return Math.random().toString(36).substr(2,4).toUpperCase();}
 function genSolo(){return'SL'+Math.random().toString(36).substr(2,4).toUpperCase();}
+function pickMission(players){
+  var total=(players||[]).reduce(function(s,p){return s+(p.pilis||0);},0);
+  var pool=total>=4?MISS:MISS.filter(function(m){return m.e!=='winminus';});
+  return pool[Math.floor(Math.random()*pool.length)];
+}
 function getName(){return document.getElementById('home-name').value.trim();}
 function initPh(m){if(m.e==='t3s'||m.e==='t5sblind')return'timer';if(m.e==='3of5')return'sel3of5';if(m.e==='betblind')return'betblind';return'betting';}
 function postBet(m){
@@ -549,11 +559,28 @@ function doMatchmaking(){
   .catch(function(e){toast('Erreur matchmaking: '+e.message);});
 }
 
+function doSkip(){
+  if(!HOST)return;
+  var now=Date.now();
+  var btn=document.getElementById('btn-skip');
+  if(!btn)return;
+  if(now-SKIP_CNF<2500){
+    SKIP_CNF=0;
+    btn.textContent='⏭';
+    btn.classList.remove('confirm');
+    doNextRound();
+  }else{
+    SKIP_CNF=now;
+    btn.textContent='✓?';
+    btn.classList.add('confirm');
+    setTimeout(function(){if(Date.now()-SKIP_CNF>=2400){SKIP_CNF=0;if(btn){btn.textContent='⏭';btn.classList.remove('confirm');}}},2500);
+  }
+}
 function doLeave(){
   if(ROOM&&DB)DB.ref('rooms/'+ROOM+'/players/'+PID).remove().catch(function(){});
   if(LSTNR&&DB){DB.ref('rooms/'+LSTNR).off('value');LSTNR=null;}
   if(CHAT_LSTNR&&DB){DB.ref('rooms/'+CHAT_LSTNR+'/chat').off('value');CHAT_LSTNR=null;}
-  ROOM=null;HOST=false;GS=null;SEL=[];CHAT_UNREAD=0;CHAT_OPEN=false;
+  EXCHWIN_TGT=null;ROOM=null;HOST=false;GS=null;SEL=[];CHAT_UNREAD=0;CHAT_OPEN=false;
   closeChat();
   var fab=document.getElementById('chat-fab');if(fab)fab.classList.add('hidden');
   scr('home');
@@ -741,7 +768,7 @@ function rndrLobby(gs){
 // START GAME
 // ════════════════════════════════════════════════════
 function startGame(code,hid,plist){
-  var m=MISS[Math.floor(Math.random()*MISS.length)];
+  var m=pickMission(plist);
   var deck=rnd(mkDeck());
   var hands=[];for(var i=0;i<plist.length;i++)hands.push(deck.slice(i*m.n,(i+1)*m.n));
   var po={};
@@ -762,11 +789,18 @@ function startGame(code,hid,plist){
 // ════════════════════════════════════════════════════
 function rndrGame(gs){
   scr('game');
+  var skipBtn=document.getElementById('btn-skip');
+  if(skipBtn){
+    var showSkip=HOST&&gs.phase!=='results'&&gs.phase!=='lobby'&&gs.phase!=='exchwin_give'&&gs.phase!=='exchwin_recv';
+    if(showSkip)skipBtn.classList.remove('hidden');else skipBtn.classList.add('hidden');
+    skipBtn.onclick=doSkip;
+    skipBtn.ontouchend=function(e){e.preventDefault();doSkip();};
+  }
   var me=gs.players[PID];if(!me)return;
   var players=spl(gs),m=gs.m,rev=m.e==='rev'||m.e==='revblind';
   document.getElementById('gmyname').textContent=me.name;
   document.getElementById('gmypili').innerHTML=ptk(me.pilis||0);
-  var lbs={betting:'Paris',playing:'Jeu',sel3of5:'3 cartes à voir',desig:'Désignez',timer:'Mémorisez !',betblind:'Pariez sans voir',reveal:'Découvrez votre main',results:'Résultats',trick_review:'Résultat du pli',exchsel:'Échange — choisissez vos cartes'};
+  var lbs={betting:'Paris',playing:'Jeu',sel3of5:'3 cartes à voir',desig:'Désignez',timer:'Mémorisez !',betblind:'Pariez sans voir',reveal:'Découvrez votre main',results:'Résultats',trick_review:'Résultat du pli',exchsel:'Échange — choisissez vos cartes',exchwin_give:'Échange — choisissez une cible et une carte',exchwin_recv:'Échange — choisissez une carte à rendre'};
   document.getElementById('gplbl').textContent='Manche '+(gs.round||1)+' · '+(lbs[gs.phase]||gs.phase);
   var md=document.getElementById('gmission');
   md.className='mission-card '+(m.x?'mx':'mn');
@@ -889,7 +923,9 @@ function rndrGame(gs){
     ?hand.map(function(c){var s=SEL.indexOf(c.id)>=0;return mkCard(c,{hid:!s,sel:s,oc:'selCard('+c.id+')'});}).join('')
     :(gs.phase==='exchsel'&&!me.exchCards)
     ?hand.map(function(c){var s=SEL.indexOf(c.id)>=0;return mkCard(c,{sel:s,oc:'selExch('+c.id+')'});}).join('')
-    :hand.map(function(c){return mkCard(c,{hid:hidH,oc:canPlay?'clickCard('+c.id+')':''});}).join('');
+    :((gs.phase==='exchwin_give'||gs.phase==='exchwin_recv')&&gs.cp===PID)
+    ?hand.map(function(c){var s=SEL.indexOf(c.id)>=0;var badge=me.newCard&&me.newCard.id===c.id?'<span class="card-badge">🎁</span>':'';return'<div style="position:relative;display:inline-block">'+mkCard(c,{sel:s,oc:'selExch('+c.id+')'})+(badge)+'</div>';}).join('')
+    :hand.map(function(c){var badge=me.newCard&&me.newCard.id===c.id?'<span class="card-badge">🎁</span>':'';return badge?'<div style="position:relative;display:inline-block">'+mkCard(c,{hid:hidH,oc:canPlay?'clickCard('+c.id+')':''})+badge+'</div>':mkCard(c,{hid:hidH,oc:canPlay?'clickCard('+c.id+')':''});}).join('');
   rndrPanel(gs,me,players);
 }
 
@@ -993,6 +1029,50 @@ function rndrPanel(gs,me,players){
     }else{
       bp.innerHTML='<div class="wmsg">✅ En attente des autres joueurs...</div>';
     }
+  }else if(ph==='exchwin_give'){
+    bp.classList.remove('hidden');
+    if(gs.cp===PID){
+      var ewOthers=players.filter(function(p){return p.id!==PID;});
+      var ewTargHtml=ewOthers.map(function(p,i){
+        var ewSel=EXCHWIN_TGT===p.id;
+        return'<div class="pchip" style="cursor:pointer;border:2px solid '+(ewSel?'#ffd166':'rgba(255,255,255,0.2)')+'" onclick="EXCHWIN_TGT=\''+p.id+'\';if(GS)rndrGame(GS)">'+
+          '<div class="pcname" style="color:'+PC[i%PC.length]+'">'+esc(p.name)+'</div></div>';
+      }).join('');
+      var ewOk=EXCHWIN_TGT&&SEL.length===1;
+      bp.innerHTML='<div style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:8px">Choisissez une cible :</div>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'+ewTargHtml+'</div>'+
+        '<div style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:8px">Choisissez une carte à donner :</div>'+
+        '<button class="btn btn-gold" id="bexchwin"'+(ewOk?'':' disabled style="opacity:0.4"')+'>✅ Confirmer l\'échange</button>';
+      var bew=document.getElementById('bexchwin');
+      function doExchWinGive(){
+        if(!EXCHWIN_TGT||SEL.length!==1)return;
+        var ewCard=GS&&GS.players[PID]&&gh(GS.players[PID]).find(function(c){return c.id===SEL[0];});
+        if(!ewCard)return;
+        act({type:'exchwin_give',targetId:EXCHWIN_TGT,card:ewCard});
+        EXCHWIN_TGT=null;SEL=[];
+      }
+      if(bew){bew.addEventListener('click',doExchWinGive);bew.addEventListener('touchend',function(e){e.preventDefault();doExchWinGive();},false);}
+    }else{
+      bp.innerHTML='<div class="wmsg">⏳ En attente du gagnant...</div>';
+    }
+  }else if(ph==='exchwin_recv'){
+    bp.classList.remove('hidden');
+    if(gs.cp===PID){
+      var ewOk2=SEL.length===1;
+      bp.innerHTML='<div style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:8px">Choisissez une carte à rendre :</div>'+
+        '<button class="btn btn-gold" id="bexchwrv"'+(ewOk2?'':' disabled style="opacity:0.4"')+'>✅ Donner cette carte</button>';
+      var brv=document.getElementById('bexchwrv');
+      function doExchWinRecv(){
+        if(SEL.length!==1)return;
+        var ewCard2=GS&&GS.players[PID]&&gh(GS.players[PID]).find(function(c){return c.id===SEL[0];});
+        if(!ewCard2)return;
+        act({type:'exchwin_recv',card:ewCard2});
+        SEL=[];
+      }
+      if(brv){brv.addEventListener('click',doExchWinRecv);brv.addEventListener('touchend',function(e){e.preventDefault();doExchWinRecv();},false);}
+    }else{
+      bp.innerHTML='<div class="wmsg">⏳ En attente de l\'adversaire...</div>';
+    }
   }else if(ph==='playing'&&!imt){
     bp.classList.remove('hidden');
     var cur=gs.players[gs.cp];
@@ -1059,10 +1139,11 @@ function rndrResults(gs){
 
 function doNextRound(){
   if(!GS||!ROOM)return;
+  EXCHWIN_TGT=null;SEL=[];
   if(Object.values(GS.players||{}).some(function(p){return(p.pilis||0)>=6;})){toast('Partie terminée!');return;}
   lg('INF','doNextRound',{round:(GS.round||1)+1});
   var players=spl(GS),nd=((GS.dealer||0)+1)%players.length;
-  var m=MISS[Math.floor(Math.random()*MISS.length)];
+  var m=pickMission(players);
   var deck=rnd(mkDeck()),hands=[];
   for(var i=0;i<players.length;i++)hands.push(deck.slice(i*m.n,(i+1)*m.n));
   var po={};
@@ -1084,7 +1165,7 @@ function doNextRound(){
 function doNewGame(){
   if(ROOM&&DB)DB.ref('rooms/'+ROOM).remove().catch(function(){});
   if(LSTNR&&DB){DB.ref('rooms/'+LSTNR).off('value');LSTNR=null;}
-  ROOM=null;HOST=false;GS=null;SEL=[];scr('home');
+  EXCHWIN_TGT=null;ROOM=null;HOST=false;GS=null;SEL=[];scr('home');
 }
 
 // ════════════════════════════════════════════════════
@@ -1253,9 +1334,35 @@ function act(action){
       for(var j=idx2+1;j<pl.length;j++){if(!pl[j].dt){nu=pl[j];break;}}
       if(nu){upd['rooms/'+ROOM+'/cp']=nu.id;}else{upd['rooms/'+ROOM+'/phase']='playing';upd['rooms/'+ROOM+'/cp']=pl[dealer%np].id;}
     }
+    if(action.type==='exchwin_give'&&ph==='exchwin_give'&&who===(gs.exchwinState||{}).giver){
+      upd['rooms/'+ROOM+'/exchwinState']={giver:who,giverCard:action.card,target:action.targetId};
+      upd['rooms/'+ROOM+'/phase']='exchwin_recv';
+      upd['rooms/'+ROOM+'/cp']=action.targetId;
+    }
+    if(action.type==='exchwin_recv'&&ph==='exchwin_recv'){
+      var ewState=gs.exchwinState||{};
+      if(who!==ewState.target){BUSY=false;return;}
+      var ewGiverId=ewState.giver,ewTargetId=who,ewGiverCard=ewState.giverCard;
+      var ewRecvCard=action.card;
+      var ewGiverHand=gh(players[ewGiverId]).slice();
+      var ewTargetHand=gh(players[ewTargetId]).slice();
+      ewGiverHand=ewGiverHand.filter(function(c){return c.id!==ewGiverCard.id;});
+      ewGiverHand.push(ewRecvCard);
+      ewTargetHand=ewTargetHand.filter(function(c){return c.id!==ewRecvCard.id;});
+      ewTargetHand.push(ewGiverCard);
+      upd['rooms/'+ROOM+'/players/'+ewGiverId+'/hand']=ewGiverHand;
+      upd['rooms/'+ROOM+'/players/'+ewGiverId+'/newCard']=ewRecvCard;
+      upd['rooms/'+ROOM+'/players/'+ewTargetId+'/hand']=ewTargetHand;
+      upd['rooms/'+ROOM+'/players/'+ewTargetId+'/newCard']=ewGiverCard;
+      upd['rooms/'+ROOM+'/exchwinState']=null;
+      upd['rooms/'+ROOM+'/phase']='trick_review';
+      upd['rooms/'+ROOM+'/trickWinner']=gs.trickWinner;
+      upd['rooms/'+ROOM+'/cp']=gs.trickWinner;
+    }
     if(action.type==='play'&&ph==='playing'){
       var player=players[who];if(!player){BUSY=false;return;}
       var h=gh(player),card=h.find(function(c){return c.id===action.id;});if(!card){BUSY=false;return;}
+      if(player.newCard&&player.newCard.id===action.id){upd['rooms/'+ROOM+'/players/'+who+'/newCard']=null;}
       var nh=h.filter(function(c){return c.id!==action.id;});
       upd['rooms/'+ROOM+'/players/'+who+'/hand']=nh.length>0?nh:{_x:true};
       var played=action.j?{id:card.id,v:action.v,j:true}:card;
@@ -1295,24 +1402,17 @@ function act(action){
           upd['rooms/'+ROOM+'/cp']=null;
           upd['rooms/'+ROOM+'/lastTrick']=true;
         }else{
-          // BUG-005 FIX: exchwin — le gagnant échange 1 carte avec le suivant
+          // EVO-015: exchwin interactif — phase exchwin_give avant trick_review
           if(m.e==='exchwin'){
-            var exchWinHands={};
-            pl.forEach(function(p){exchWinHands[p.id]=p.id===who?nh:gh(p);});
-            var winIdx=pl.findIndex(function(p){return p.id===wid;});
-            var nextIdx=(winIdx+1)%pl.length;
-            var winH=exchWinHands[wid].slice();
-            var nextH=exchWinHands[pl[nextIdx].id].slice();
-            if(winH.length>0&&nextH.length>0){
-              var tmp=winH[0];winH[0]=nextH[0];nextH[0]=tmp;
-              upd['rooms/'+ROOM+'/players/'+wid+'/hand']=winH;
-              upd['rooms/'+ROOM+'/players/'+pl[nextIdx].id+'/hand']=nextH;
-            }
+            upd['rooms/'+ROOM+'/phase']='exchwin_give';
+            upd['rooms/'+ROOM+'/trickWinner']=wid;
+            upd['rooms/'+ROOM+'/cp']=wid;
+            upd['rooms/'+ROOM+'/exchwinState']={giver:wid};
+          }else{
+            upd['rooms/'+ROOM+'/phase']='trick_review';
+            upd['rooms/'+ROOM+'/trickWinner']=wid;
+            upd['rooms/'+ROOM+'/cp']=wid;
           }
-          // EVO-004: phase intermédiaire trick_review
-          upd['rooms/'+ROOM+'/phase']='trick_review';
-          upd['rooms/'+ROOM+'/trickWinner']=wid;
-          upd['rooms/'+ROOM+'/cp']=wid;
         }
         // ANO-026: 1er appel pour écrire la carte, 2ème pour update, 3ème pour reset si fin de manche
         return DB.ref('rooms/'+ROOM+'/trick/'+who).set(played)
@@ -1387,6 +1487,16 @@ function aiTurn(gs,aiId){
       var nc=exchSelN(m.e);
       act({type:'exchsel',cards:hand.slice(0,nc),pid:aiId});
     }
+  }else if(ph==='exchwin_give'&&gs.cp===aiId){
+    var ewOthersAI=pl.filter(function(p){return p.id!==aiId;});
+    var ewTgtAI=ewOthersAI[0];
+    var ewBet0=(ai.bet||0)===0;
+    var ewCardAI=ewBet0?hand[hand.length-1]:hand[0];
+    act({type:'exchwin_give',targetId:ewTgtAI.id,card:ewCardAI,pid:aiId});
+  }else if(ph==='exchwin_recv'&&gs.cp===aiId){
+    var ewBet02=(ai.bet||0)===0;
+    var ewCardAI2=ewBet02?hand[hand.length-1]:hand[0];
+    act({type:'exchwin_recv',card:ewCardAI2,pid:aiId});
   }else if(ph==='reveal'&&HOST){
     var pll=spl(gs);DB.ref('rooms/'+ROOM).update({phase:'playing',cp:pll[gs.dealer%pll.length].id});
   }
@@ -1439,6 +1549,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <button id="chat-send" class="chat-send-btn">↑</button>
   </div>
 </div>
+<button id="btn-skip" class="btn-skip hidden" type="button" title="Passer la mission">⏭</button>
 <button id="chat-fab" class="chat-fab hidden">💬<span id="chat-badge" class="chat-badge hidden"></span></button>
 <!-- Debug panel — triple-tap sur la version pour l'ouvrir -->
 <div id="dbg-panel">
